@@ -1,0 +1,41 @@
+# .gitignore
+config.json
+foooxus.db
+exe.bat
+foooxus.exe
+foooxusExe.py
+FoooXus-Fooocus-Extender.code-workspace
+
+# Python
+*.py[cod]
+*.pyc
+*.pyo
+*.pyd
+__pycache__
+*.so
+*.egg
+*.egg-info
+dist
+build
+*.spec
+
+# Directories
+.vscodepython foooxus.py
+.idea
+__pycache__
+*.egg-info
+dist
+build
+outputs
+output
+venv
+work
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
