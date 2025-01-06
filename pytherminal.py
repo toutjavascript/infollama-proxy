@@ -28,7 +28,7 @@ def clear_line():
 def get_value_type(obj):
     return str(type(obj)).replace("<class '", "").replace("'>", "")
 
-def table(my_array):
+def table(my_array, ignore_columns=None):
     # Looking for the values of the table
     # Loooking for the titles of the table 
     titles=[]
@@ -45,7 +45,9 @@ def table(my_array):
             # print("  ", get_value_type(col))
             # print("     ", num_col, col)
             title, value=col
-
+            if title in ignore_columns:
+                continue
+            
             if (num_row==0):
                 titles.append(title)
                 types.append(get_value_type(value))
