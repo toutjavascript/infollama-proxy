@@ -13,6 +13,8 @@ from datetime import datetime
 
 # Third party imports
 import requests
+from rich import print as rprint
+
 
 # Local imports
 import pytherminal
@@ -27,7 +29,7 @@ GITHUB_REPO="https://github.com/toutjavascript/infollama"
 #Define class for model information
 
 class ModelInfo:
-    def __init__(self, name, modified_at, id, size, size_number, family, quantization_level, parameter_size, context_length, context_length_number, running):
+    def __init__(self, name, modified_at, id, size, size_number, family, quantization_level, parameter_size, context_length, context_length_number, running, parameters=""):
         self.name = name
         #Modify name to name_sort: Ex qwen2.5:1.5b becomes qwen2.5:001.5b
         name_sort = re.sub(r':([0-9]+)', lambda m: f":{m.group(1).zfill(5)}", name)
@@ -43,6 +45,7 @@ class ModelInfo:
         self.modified_at = modified_at
         self.id = id
         self.running=running
+        self.parameters=parameters
         
     def __iter__(self):
         return iter([self.name, self.modified_at, self.id, self.size, self.family, self.quantization_level, self.parameter_size, self.context_length])
@@ -56,6 +59,20 @@ class PrintVersionAction(argparse.Action):
         pytherminal.printBB(f"[h1]Version of infollama: {VERSION}[/h1]. More informations @ [u]{GITHUB_REPO}[/u]")
         parser.exit()
 
+
+def get_diff_date(dt1, dt2="now"):
+    if dt2 == "now":
+        dt2 = datetime.now().isoformat()
+    dt1 = datetime.fromisoformat(dt1)
+    dt2 = datetime.fromisoformat(dt2)
+    
+    if dt1.tzinfo is None and dt2.tzinfo is not None:
+        dt1 = dt1.replace(tzinfo=dt2.tzinfo)
+    elif dt1.tzinfo is not None and dt2.tzinfo is None:
+        dt2 = dt2.replace(tzinfo=dt1.tzinfo)
+    
+    delta = dt1 - dt2
+    return str(round(delta.total_seconds() / 60))+" min"  # return difference in minutes
 
 
 # parse BB code and print it in console
@@ -182,7 +199,6 @@ def get_ollama_model_list(base_url, sort="date", filter=""):
     runnings=ps["models"]
 
 
-
     totalGB=0
     no_model=0
 
@@ -199,21 +215,34 @@ def get_ollama_model_list(base_url, sort="date", filter=""):
 
         show = requests.post(f"{base_url}/api/show/", json={"model": model["model"]})
         context_length=0
-        parameter_size=0
+        parameter_count=0
+        parameters=""
         running=""
         if (show.status_code == 200):           
             show=show.json()
-            if "details" in show and "parameter_size" in show["details"]:
-                parameter_size = show["details"]["parameter_size"]
+            if "parameters" in show:
+                parameters=str(show["parameters"])
+                parameters=parameters.replace("\n", "   ")
+                parameters=re.sub(r'\s{4,}', '===', parameters)
+                parameters=parameters.strip()
+                parameters=""
             if "model_info" in show and model["details"]["family"]+".context_length" in show["model_info"]:
-                context_length = "{:,.0f} k".format(show["model_info"][model["details"]["family"]+".context_length"]/1024).rjust(14," ")
+                context_length = "{:,.0f} k".format(show["model_info"][model["details"]["family"]+".context_length"]/1024).rjust(8," ")
                 context_length_number=show["model_info"][model["details"]["family"]+".context_length"]
             if "model_info" in show and "general.parameter_count" in show["model_info"]:
-                parameter_size = "{:,.1f} B".format(show["model_info"]["general.parameter_count"]/1024/1024/1024).rjust(14," ")
+                parameter_count = "{:,.1f} B".format(show["model_info"]["general.parameter_count"]/1024/1024/1024).rjust(10," ")
+               
 
-                
+        #Searching for running models
+        for run in runnings:
+            if run["digest"][:12] == model["digest"][:12]:
+                pct="{:.0f}%".format(run["size_vram"]/run["size"]*100)
+                ram="{:.1f} GB".format(run["size"]/1024/1024/1024)
+                running="ill "+get_diff_date(run["expires_at"], "now")+ ", RAM: "+ram+ " ("+pct+" GPU)"
+                break
+  
 
-        model_info=ModelInfo(model["model"], model["modified_at"][:10], model["digest"][:12], size, size_number, model["details"]["family"], "      "+model["details"]["quantization_level"], parameter_size, context_length, context_length_number, running)
+        model_info=ModelInfo(model["model"], model["modified_at"][:10], model["digest"][:12], size, size_number, model["details"]["family"], " "+model["details"]["quantization_level"], parameter_count, context_length, context_length_number, running, parameters)
         models.append(model_info)
 
     #Sorting models array by sort parameter
@@ -235,8 +264,9 @@ def get_ollama_model_list(base_url, sort="date", filter=""):
 
     return models
 
-def print_table(my_array, ignore_columns=None, align_right_columns=None):
+def print_table(my_array, ignore_columns=None, align_right_columns=None, titles_mapping=None):
     titles=[]
+    display_titles=[]
     types=[]    
     rows=[]
 
@@ -251,6 +281,7 @@ def print_table(my_array, ignore_columns=None, align_right_columns=None):
 
             if (num_row==0):
                 titles.append(title)
+                display_titles.append(titles_mapping.get(title, title))
                 types.append(pytherminal.get_value_type(value))
             
             # Check typeof value and convert it to the right type
@@ -280,7 +311,7 @@ def print_table(my_array, ignore_columns=None, align_right_columns=None):
     #Looking for the max columns width
     #Init the widths with the lenghts of the first row (titles array)
     widths=[]
-    for (num_col, title) in enumerate(titles):
+    for (num_col, title) in enumerate(display_titles):
         widths.append(len(str(title)))
 
     #Get the new max of each column width
@@ -292,12 +323,13 @@ def print_table(my_array, ignore_columns=None, align_right_columns=None):
 
     #Printing the table with right width
     line=""
-    for (num_col, title) in enumerate(titles):
+    for (num_col, title) in enumerate(display_titles):
         line+=""+title.ljust(widths[num_col]+1)+" "
     printBB("[header]"+line+"[/header]")
 
     for (num_row, row) in enumerate(rows):
         line=""
+        running=False
         for (num_col, col) in enumerate(row):
             value=str(col)
             if (types[num_col]=="int"):
@@ -314,16 +346,25 @@ def print_table(my_array, ignore_columns=None, align_right_columns=None):
                         line+=(" " if num_col>0 else "")+value.rjust(widths[num_col]," ")+" "
                     else:                  
                         line+=(" " if num_col>0 else "")+value.ljust(widths[num_col]+1," ")
+            if (titles[num_col]=="running" and value!=""):
+                running=True
+        if running==True:
+            printBB("[reverse][h1]"+line+"[/h1][/reverse]")
+        else:
+            printBB(line)
 
-        printBB(line)
 
-    
 
 
 def main(base_url, sort, filter):
     models = get_ollama_model_list(base_url, sort, filter)
     pytherminal.print_line("\n")
-    print_table(models, ignore_columns=["size_number","context_length_number", "name_sort"], align_right_columns=["family", "modified_at"])
+    print_table(
+        models, 
+        ignore_columns=["size_number","context_length_number", "name_sort"], 
+        align_right_columns=["family", "modified_at"],
+        titles_mapping={"name": "Model Name", "size": "File Size", "modified_at": "Loaded", "context_length": "Max Ctx", "parameter_size": "Parameters", "quantization": "Quantiz."}
+    )
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Get a readable and sortable list of installed models, name, size and details from Ollama')
