@@ -17,7 +17,7 @@ from rich import print as rprint
 
 
 # Local imports
-import pytherminal
+import src.pytherminal as pytherminal
 
 
 
