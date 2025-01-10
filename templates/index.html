@@ -1,0 +1,19 @@
+<h1>Local Proxy Ollama</h1>
+
+<h2>Run your Flask app with gunicorn:</h2>
+<pre>pip install gunicorn</pre>
+
+<p>
+  create a file named `wsgi.py` in the same directory as your Flask application.
+</p>
+<pre>
+# filepath: /Users/olivierhondermarck/Documents/cloud/dunod/IA/python/infollama/wsgi.py
+
+from proxy import app
+
+if __name__ == "__main__":
+    app.run()
+</pre>
+
+Run app :
+<pre>gunicorn --bind 0.0.0.0:11430 wsgi:app</pre>

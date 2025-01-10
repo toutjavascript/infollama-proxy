@@ -3,3 +3,5 @@ rich
 psutil
 py_cpuinfo
 GPUtil==1.4.0
+flask
+flask-cors
