@@ -1,10 +1,14 @@
 # .gitignore
-config.json
-foooxus.db
-exe.bat
-foooxus.exe
-foooxusExe.py
-FoooXus-Fooocus-Extender.code-workspace
+*.log
+*.tmp
+*.bak
+*.swp
+*.DS_Store
+*.gitignore
+*.idea
+__pycache__
+*.egg-info
+*.code-workspace
 
 # Python
 *.py[cod]
@@ -15,8 +19,6 @@ __pycache__
 *.so
 *.egg
 *.egg-info
-dist
-build
 *.spec
 
 # Directories

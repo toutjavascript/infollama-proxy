@@ -5,7 +5,6 @@ Created: 2025-01
 """
 import requests
 import os
-import logging
 import argparse
 import multiprocessing
 from flask_cors import CORS
@@ -22,8 +21,8 @@ OLLAMA_MIN_RELEASE="0.5.0"
 
 # List of endpoints that are allowed to be accessed by the user
 user_allowed_endpoints= ["/api/tags",
-                         "/api/show",  
-                         "/api/version", 
+                         "/api/show",
+                         "/api/version",
                          "/api/ps", 
                          "/api/generate",
                          "/api/chat",
@@ -32,12 +31,23 @@ user_allowed_endpoints= ["/api/tags",
                          "/v1/completions",
                          "/v1/models",
                          "/v1/models/",
-                         "/v1/embeddings"
+                         "/v1/embeddings",
+                         "/info/api/"
                         ]
-admin_allowed_endpoints=["/api/create", "/api/copy", "/api/delete", "/api/pull", "/api/push"]
+admin_allowed_endpoints=["/api/create", "/api/copy", "/api/delete", "/api/pull", "/api/push",
+                         "/info/admin_api/"]
+
+class InfollamaUser:
+    def __init__(self, user_type: str, user_name: str, token: str):
+        self.user_type=user_type
+        self.user_name=user_name
+        self.token=token
+    def __str__(self):
+        return f"User: {self.user_name}, Type: {self.user_type}"
+       
 
 class InfollamaProxy:
-    def __init__(self, base_url, host, port, cors_policy):
+    def __init__(self, base_url, host, port, cors_policy, user_file, log_level="ALL"):
         base_url=base_url.rstrip('/').rstrip('/')
         if (base_url.startswith("http://") or base_url.startswith("https://")):
             self.base_url = base_url
@@ -51,6 +61,9 @@ class InfollamaProxy:
         self.ollama_version=None
         self.ollama_running=False
         self.env_vars=dict()
+        self.user_file=user_file
+        self.log_level=log_level
+        self.users=[]
         self.get_ollama_env_var()
         if cors_policy == "*":
             CORS(self.server)  # Enable CORS for all origins
@@ -64,13 +77,55 @@ class InfollamaProxy:
         raise AttributeError(f"'{name}' not found in InfollamaProxy")
 
     def __str__(self):
+        users = ", ".join([f"{user.user_name} is {user.user_type}" for user in self.users])
         return f"""InfollamaProxy(base_url={self.base_url}, 
         host={self.host}, 
         port={self.port}, 
         cors_policy={self.cors_policy}, 
         ollama_version={self.ollama_version}, 
         ollama_running={self.ollama_running}, 
-        env_vars=[{self.env_vars}]"""
+        env_vars=[{self.env_vars}],
+        users=[{users}]"""
+    
+    def log_event(self, event, log_level):
+        """Log an event to the console"""
+        print(f"Event logged: {event}")
+
+    def load_user_file(self):
+        """Load the user file from the self.user_file file formated as type_of_user:user_name:token
+        typeof user can be admin or user
+        user_name is a string with letters or numbers
+        toke is a secret string starting with pro_ followed by a random text string of 10 characters
+        Example: admin:john_doe:pro_1234567890
+        users found are stored in self.users as a InfollamaUser object
+        """
+        try:
+            # read the file line by line and create a list of InfollamaUser objects
+            with open(self.user_file, 'r') as file:
+                lines = file.readlines()
+                for line in lines:
+                    parts = line.strip().split(':')
+                    print(line, parts)
+                    if len(parts) == 3 and parts[0] in ['admin', 'user']:
+                        user_type, user_name, token = parts[0], parts[1], parts[2]
+                        self.users.append(InfollamaUser(user_type=user_type, user_name=user_name, token=token))                        
+        except FileNotFoundError:
+            print(f"User file {self.user_file} not found. No user auth definition.")
+
+    def get_user(self, token: str):
+        """Return an InfollamaUser object based on the token"""
+        for user in self.users:
+            if user.token == token:
+                return user
+        return None
+
+    def check_user(self, token: str, endpoint: str):
+        """Check if the token is associated to a user who has access to the specified endpoint"""
+        # Implement your logic here
+        user=self.get_user(token)
+        if user is not None:
+            return False
+        return True
 
     def get_ollama_env_var(self):
         """Get the Ollama environment variables from the system"""
@@ -118,16 +173,16 @@ class InfollamaProxy:
         return response.json()
 
 
-    # Check versions of module versus requirements.txt
+    # Check python version and venv
     def check_versions(self):
         pythonVersion=utils.getPythonVersion()
         OS=utils.getOS()
         pytherminal.console(" ", False)
         pytherminal.console(" You are running [b]Python V"+pythonVersion+"[/b] on [b]"+OS+"[/b]", False)
         if utils.in_venv():
-            pytherminal.console(" [b] (venv) is activated[/b]", False)
+            pytherminal.console(" [b] (virtual env) is activated[/b]", False)
         else:
-            pytherminal.console(" [error] Carefull, (venv) is not activated. You may experience module version issues[/error]", False)
+            pytherminal.console(" [error] Carefull, (virtual env) is not activated. You may experience module version issues[/error]", False)
 
 
     def check_ollama_connection(self):
@@ -165,6 +220,9 @@ if __name__ == "__main__":
     tjs_port=11430                          # port of the proxy server
     cors_policy="*"                         # cors policy of the proxy server (* allows all origins, None fixes policy to same origin)
     base_url="http://localhost:11434/"      # base url of the ollama server
+    user_file="users.conf"                  # path to the user file containing credentials
+    log_level="INFO"                        # log level of the proxy server
+    log_file="proxy.log"                    # path to the log file for the proxy server
     ##########################################################################################################################################
 
     # Reading the argument parameters
@@ -173,7 +231,7 @@ if __name__ == "__main__":
     parser.add_argument('--port', type=str, default=tjs_port, help=f'The port for the proxy server (default: {tjs_port})')
     args = parser.parse_args()
 
-    proxy = InfollamaProxy(base_url=base_url, host=tjs_host, port=tjs_port, cors_policy=cors_policy )
+    proxy = InfollamaProxy(base_url=base_url, host=tjs_host, port=tjs_port, cors_policy=cors_policy, user_file=user_file )
     #print("proxy after init()", proxy)
 
     # Display on terminal the state of application.
@@ -194,7 +252,10 @@ if __name__ == "__main__":
         pytherminal.console(f"[error]Ollama not found or stopped @[url]{proxy.ollama_base_url}[/url][/error]", False)
 
 
-    pprint(device.get_device_info())  
+    #pprint(device.get_device_info())  
+
+    proxy.load_user_file()
+    print(proxy)  
     
     appPath=utils.getAppPath()
     # Prevent http flask web server logging in terminal 
