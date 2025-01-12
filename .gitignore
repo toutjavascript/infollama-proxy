@@ -9,6 +9,7 @@
 __pycache__
 *.egg-info
 *.code-workspace
+work.md
 
 # Python
 *.py[cod]

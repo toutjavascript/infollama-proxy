@@ -5,6 +5,7 @@ Created: 2025-01
 """
 import requests
 import os
+import json
 import argparse
 import multiprocessing
 from flask_cors import CORS
@@ -12,6 +13,7 @@ import src.pytherminal as pytherminal
 import src.device    as device
 import src.utils     as utils
 from rich.pretty import pprint
+import datetime
 
 from flask import Flask, render_template, request, send_from_directory, Response, stream_with_context, abort
 
@@ -19,23 +21,27 @@ from flask import Flask, render_template, request, send_from_directory, Response
 OLLAMA_PROXY_RELEASE="0.0.1"
 OLLAMA_MIN_RELEASE="0.5.0"
 
-# List of endpoints that are allowed to be accessed by the user
-user_allowed_endpoints= ["/api/tags",
-                         "/api/show",
-                         "/api/version",
-                         "/api/ps", 
-                         "/api/generate",
-                         "/api/chat",
-                         "/api/embed",
-                         "/v1/chat/completions",
-                         "/v1/completions",
-                         "/v1/models",
-                         "/v1/models/",
-                         "/v1/embeddings",
-                         "/info/api/"
+# List of endpoints that are allowed to be accessed by the different types of users
+# All users have access to that endpoints. This endpoints are necessary for the proxy to start and function properly. 
+anonymous_allowed_endpoints=  ["api/tags", "v1/models", "api/version"]
+
+# Only users with a valid token can access that endpoints
+user_allowed_endpoints= ["api/show",
+                         "api/version",
+                         "api/ps", 
+                         "api/generate",
+                         "api/chat",
+                         "api/embed",
+                         "v1/chat/completions",
+                         "v1/completions",
+                         "v1/models",
+                         "v1/models/",
+                         "v1/embeddings",
+                         "info/api/"
                         ]
-admin_allowed_endpoints=["/api/create", "/api/copy", "/api/delete", "/api/pull", "/api/push",
-                         "/info/admin_api/"]
+# Only users with a valid admin token can access that endpoints
+admin_allowed_endpoints=["api/create", "api/copy", "api/delete", "api/pull", "api/push",
+                         "info/admin_api/"]
 
 class InfollamaUser:
     def __init__(self, user_type: str, user_name: str, token: str):
@@ -44,7 +50,17 @@ class InfollamaUser:
         self.token=token
     def __str__(self):
         return f"User: {self.user_name}, Type: {self.user_type}"
-       
+
+class InfollamaAccess:
+    def __init__(self, user_name: str, is_authorised: bool, desc: str):
+        self.user_name=user_name
+        self.is_authorised=is_authorised
+        self.desc=desc
+    def __str__(self):
+        if (self.is_authorised):
+            return f"Access to {self.user_name} is authorised ({self.desc})"
+        else:
+            return f"Access to {self.user_name} is not forbidden ({self.desc})"
 
 class InfollamaProxy:
     def __init__(self, base_url, host, port, cors_policy, user_file, log_level="ALL"):
@@ -63,6 +79,7 @@ class InfollamaProxy:
         self.env_vars=dict()
         self.user_file=user_file
         self.log_level=log_level
+        self.log_file="proxy.log"
         self.users=[]
         self.get_ollama_env_var()
         if cors_policy == "*":
@@ -75,7 +92,7 @@ class InfollamaProxy:
         if hasattr(InfollamaProxy, name):
             return getattr(InfollamaProxy, name)
         raise AttributeError(f"'{name}' not found in InfollamaProxy")
-
+    
     def __str__(self):
         users = ", ".join([f"{user.user_name} is {user.user_type}" for user in self.users])
         return f"""InfollamaProxy(base_url={self.base_url}, 
@@ -87,11 +104,20 @@ class InfollamaProxy:
         env_vars=[{self.env_vars}],
         users=[{users}]"""
     
-    def log_event(self, event, log_level):
-        """Log an event to the console"""
-        print(f"Event logged: {event}")
+    def log_event(self, event, log_level=0) -> None:
+        """Log an event to the console and the log_file file"""
+        ip=self.get_user_ip()
+        pytherminal.console(f"[d]Logged in {self.log_file}[/d]  {ip}  {event}")
+        try:
+            with open(self.log_file, "a") as log_file:
+                now=datetime.datetime.now()
 
-    def load_user_file(self):
+                log_file.write(f"{now}  {ip}  {event}\n")
+        except Exception as e:
+            print(f"Error logging event: {e}")
+        
+
+    def load_user_file(self) -> None:
         """Load the user file from the self.user_file file formated as type_of_user:user_name:token
         typeof user can be admin or user
         user_name is a string with letters or numbers
@@ -105,29 +131,59 @@ class InfollamaProxy:
                 lines = file.readlines()
                 for line in lines:
                     parts = line.strip().split(':')
-                    print(line, parts)
                     if len(parts) == 3 and parts[0] in ['admin', 'user']:
                         user_type, user_name, token = parts[0], parts[1], parts[2]
                         self.users.append(InfollamaUser(user_type=user_type, user_name=user_name, token=token))                        
         except FileNotFoundError:
             print(f"User file {self.user_file} not found. No user auth definition.")
 
-    def get_user(self, token: str):
+    def get_user(self, token: str) -> InfollamaUser:
         """Return an InfollamaUser object based on the token"""
+        if (token is None): 
+            return InfollamaUser("anonymous", "anonymous", "")
         for user in self.users:
             if user.token == token:
                 return user
         return None
+    
+    def get_token(self, headers = None) -> str:
+        """Return the token passed in Bearer Authorization header or return None if not found"""
+        if headers is None:
+            return None
+        auth_header = headers.get('Authorization')
+        if auth_header and auth_header.startswith('Bearer '):
+            return auth_header.split(' ')[1]
+        return None
 
-    def check_user(self, token: str, endpoint: str):
+    def check_user_access(self, headers: str, endpoint: str) -> InfollamaAccess:
         """Check if the token is associated to a user who has access to the specified endpoint"""
-        # Implement your logic here
-        user=self.get_user(token)
-        if user is not None:
-            return False
-        return True
+        token=self.get_token(headers)
 
-    def get_ollama_env_var(self):
+        user=self.get_user(token)
+        # Check wich endpoints are allowed for the user type
+        if user.user_type=="anonymous":
+            allowed_endpoints=anonymous_allowed_endpoints
+        if user.user_type=="user":
+            allowed_endpoints=anonymous_allowed_endpoints+user_allowed_endpoints
+        if user.user_type=="admin":
+            allowed_endpoints=anonymous_allowed_endpoints+user_allowed_endpoints+admin_allowed_endpoints
+
+        if endpoint not in allowed_endpoints:
+            r=InfollamaAccess(user.user_name, False, f"Endpoint {endpoint} is not allowed for user named {user.user_name}, type {user.user_type}")
+            return r
+        else:
+            r=InfollamaAccess(user.user_name, True, f"Access to Endpoint {endpoint} granted to user named {user.user_name}, type {user.user_type}")
+            return r
+
+    def get_user_ip(self) -> str:
+        """Get the IP address of the user"""
+        try:
+            return request.remote_addr
+        except Exception as e:
+            return "0.0.0.0"
+    
+
+    def get_ollama_env_var(self) -> None:
         """Get the Ollama environment variables from the system"""
         try:
             self.env_vars.clear()
@@ -136,13 +192,20 @@ class InfollamaProxy:
         except KeyError:
             pass
 
-    def create_url(self, endpoint: str):
+    def create_url(self, endpoint: str) -> str:
         """Create a URL for the Ollama API, with base_url and endpoint"""
         if (endpoint.startswith("/")):
             endpoint = endpoint[1:]
         return f"{self.ollama_base_url}/{endpoint}"
     
-    def get(self, endpoint, **kwargs):
+    def get(self, endpoint, headers, **kwargs):
+        """Send a GET request to the Ollama API if the token access to endpoint is validated"""
+        access=self.check_user_access(headers, endpoint)
+        if access.is_authorised is False:
+            self.log_event(f"Rejected GET request by {access.user_name} for {endpoint}", log_level=9)
+            return False
+        self.log_event(f"Accepted GET request by {access.user_name} for {endpoint}", log_level=1)
+
         url = self.create_url(endpoint)
         try:
             response = requests.get(url, params=kwargs)
@@ -151,30 +214,41 @@ class InfollamaProxy:
             else:
                 return response.text
         except Exception as e:
-            pytherminal.console(f"[error]{e}[/error]");
+            pytherminal.console(f"self.get() [error]{e}[/error]");
             abort(500)
     
-    def post(self, endpoint, data=None, **kwargs):
+    def post(self, endpoint, headers, data=None, **kwargs):
+        access=self.check_user_access(headers, endpoint)
+        if access.is_authorised is False:
+            self.log_event(f"Rejected GET request by {access.user_name} for {endpoint}", log_level=9)
+            return False
+        self.log_event(f"Accepted GET request by {access.user_name} for {endpoint}", log_level=1)
+
+        url = self.create_url(endpoint)     
+        try:   
+            response = requests.post(url, json=data, params=kwargs)
+            if (utils.is_json(response.text)):
+                return response.json()      
+            else:
+                return response.text
+        except Exception as e:
+            pytherminal.console(f"self.post() [error]{e}[/error]");
+            abort(500)
+    
+    def stream(self, endpoint, headers, data=None, **kwargs):
+        access=self.check_user_access(headers, endpoint)
+        if access.is_authorised is False:
+            self.log_event(f"Rejected POST streamed request by {access.user_name} for {endpoint}", log_level=9)
+            return False
+        self.log_event(f"Accepted POST streamed request by {access.user_name} for {endpoint}", log_level=1)
+
         url = self.create_url(endpoint)        
-        response = requests.post(url, json=data, params=kwargs)
-        if data["stream"]==True:
-            for chunk in response.iter_content(chunk_size=1024): 
-                stream_Data=chunk.decode('utf-8')   # Get each chunk of data
-                return Response(stream_Data, mimetype='text/event-stream')
-        else:
-            return response.json()
-    def put(self, endpoint, data=None, **kwargs):
-        url = self.create_url(endpoint)
-        response = requests.put(url, json=data, params=kwargs)
-        return response.json()  
-    def delete(self, endpoint, **kwargs):
-        url = self.create_url(endpoint)        
-        response = requests.delete(url, params=kwargs)
-        return response.json()
+        return Response(stream_with_context(stream_request('POST', url, json=request.json, params=request.args)), content_type=request.headers.get('Content-Type'))
 
 
     # Check python version and venv
-    def check_versions(self):
+    def print_versions(self) -> None:
+        """Display Python version and OS information on terminal"""
         pythonVersion=utils.getPythonVersion()
         OS=utils.getOS()
         pytherminal.console(" ", False)
@@ -185,7 +259,7 @@ class InfollamaProxy:
             pytherminal.console(" [error] Carefull, (virtual env) is not activated. You may experience module version issues[/error]", False)
 
 
-    def check_ollama_connection(self):
+    def check_ollama_connection(self) -> bool:
         """
         Trying to connect to ollama server and checking if it's running."""
         try:
@@ -197,21 +271,26 @@ class InfollamaProxy:
             return False
         
         
-    def get_ollama_version(self):
+    def get_ollama_version(self) -> str|None:
         """ Trying to read the /api/version to ensure this is a real ollama server on base_url. """
-        response=self.get("/api/version")
+        url=self.create_url("/api/version")
+        response=requests.get(url)
+
         try:
+            response=json.loads(response.text)
             self.ollama_version=response["version"]
             self.ollama_running=True
             return self.ollama_version
         except Exception as e:
-            print(e)
+            
+            print(f"get_ollama_version() failed: {e}")
             self.ollama_running=False
             self.ollama_version=None
             return None        
 
 
 if __name__ == "__main__":
+    # Only one instance of this proxy server can be run at a time. This is done by freezing the support for multiprocessing.
     multiprocessing.freeze_support()
    
 
@@ -238,12 +317,12 @@ if __name__ == "__main__":
     pytherminal.console("[reverse][h1]*******************    Ollama Localhost Proxy V "+OLLAMA_PROXY_RELEASE+" started    ******************[/h1][/reverse]", False)
     pytherminal.console("  [ok]Thanx for using. Please report issues and ideas on[/ok]", False)
     pytherminal.console("  [url]https://github.com/toutjavascript/ollama-localhost-proxy[/url]", False) 
-    proxy.check_versions()
+    proxy.print_versions()
     #print("proxy after check_versions()", proxy)
     proxy.check_ollama_connection()
-    #print("proxy after check_ollama_connection()", proxy)
     if proxy.ollama_running:
         proxy.get_ollama_version()
+
         if (proxy.ollama_version is not None):
             pytherminal.console(f"[green]Ollama [u]V {proxy.ollama_version}[/u] is running @[url]{proxy.ollama_base_url}[/url][/green]", False)
         else:
@@ -255,7 +334,6 @@ if __name__ == "__main__":
     #pprint(device.get_device_info())  
 
     proxy.load_user_file()
-    print(proxy)  
     
     appPath=utils.getAppPath()
     # Prevent http flask web server logging in terminal 
@@ -285,23 +363,28 @@ if __name__ == "__main__":
         """ Serve the robots.txt file (to avoid 404 errors)"""
         return "deny: all"
 
-
     @proxy.server.route('/')
     def home():
-        return proxy.get("", **request.args)
+        return proxy.get("", "FROM-PYTHON", **request.args)
     
     @proxy.server.route('/<path:path>', methods=['GET', 'POST', 'OPTIONS'])
     def catch_all(path):
         """ Catch all routes and forward them to the ollama server """
         if request.method == 'GET':
             # A simple get request will be forwarded to the ollama server
-            return proxy.get(path, **request.args)
+            return proxy.get(path, request.headers, **request.args)
         elif request.method == 'POST':
-            # A POST request will be forwarded to the ollama server and must be streamed
-            url=proxy.create_url(path)
-            return Response(stream_with_context(stream_request('POST', url, json=request.json, params=request.args)), content_type=request.headers.get('Content-Type'))
+            # A POST request will be forwarded to the ollama server and must be streamed if stream parameter is set
+            if "stream" in request.json:
+                if request.json["stream"] is True:
+                    url=proxy.create_url(path)
+                    return proxy.stream(path, request.headers, **request.args)
+            else:
+                return proxy.post(path, request.headers, **request.args)
+
         elif request.method == 'OPTIONS':
             # Handle CORS preflight requests called by browsers on the frontend when cors origin must be checked
+            # Always accept CORS preflight requests called by browsers on the frontend when cors origin must be checked
             return '', 204 
         else:
             return "Method not allowed", 405
@@ -317,5 +400,7 @@ if __name__ == "__main__":
 
 
     # Starting the Flask proxy server with the specified host and port
+    proxy.log_event(" ", log_level=9)
+    proxy.log_event(f"Proxy server starting on {tjs_host}:{tjs_port}", log_level=9)
     proxy.server.run(host=tjs_host, port=tjs_port)
 
