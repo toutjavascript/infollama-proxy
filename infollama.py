@@ -238,7 +238,7 @@ def get_ollama_model_list(base_url, sort="date", filter=""):
             if run["digest"][:12] == model["digest"][:12]:
                 pct="{:.0f}%".format(run["size_vram"]/run["size"]*100)
                 ram="{:.1f} GB".format(run["size"]/1024/1024/1024)
-                running="ill "+get_diff_date(run["expires_at"], "now")+ ", RAM: "+ram+ " ("+pct+" GPU)"
+                running="till "+get_diff_date(run["expires_at"], "now")+ ", RAM: "+ram+ " ("+pct+" GPU)"
                 break
   
 

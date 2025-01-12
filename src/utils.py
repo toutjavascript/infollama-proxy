@@ -3,6 +3,7 @@ import glob
 import importlib.metadata
 import sys
 import platform
+import json
 
 # Return true if the python script is running in a venv environment
 def in_venv():
@@ -53,7 +54,12 @@ def checkFolder(directory):
         # print("Creating directory: " + directory)
         os.makedirs(directory)
 
-
+def is_json(myjson):
+    try:
+        json.loads(myjson)
+    except ValueError as e:
+        return False
+    return True
 
 def getAppPath():
     realpath=os.path.realpath(__file__)

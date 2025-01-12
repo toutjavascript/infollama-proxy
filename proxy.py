@@ -5,26 +5,58 @@ Created: 2025-01
 """
 import requests
 import os
+import logging
+import argparse
 import multiprocessing
 from flask_cors import CORS
 import src.pytherminal as pytherminal
 import src.device    as device
 import src.utils     as utils
-from flask import Flask, render_template, request, send_from_directory, Response, stream_with_context
+from rich.pretty import pprint
+
+from flask import Flask, render_template, request, send_from_directory, Response, stream_with_context, abort
 
 # Constants to identify version and execution modalities
 OLLAMA_PROXY_RELEASE="0.0.1"
 OLLAMA_MIN_RELEASE="0.5.0"
 
+# List of endpoints that are allowed to be accessed by the user
+user_allowed_endpoints= ["/api/tags",
+                         "/api/show",  
+                         "/api/version", 
+                         "/api/ps", 
+                         "/api/generate",
+                         "/api/chat",
+                         "/api/embed",
+                         "/v1/chat/completions",
+                         "/v1/completions",
+                         "/v1/models",
+                         "/v1/models/",
+                         "/v1/embeddings"
+                        ]
+admin_allowed_endpoints=["/api/create", "/api/copy", "/api/delete", "/api/pull", "/api/push"]
+
 class InfollamaProxy:
-    def __init__(self, port=11430, base_url="http://localhost:11434/"):
-        self.port = port
+    def __init__(self, base_url, host, port, cors_policy):
         base_url=base_url.rstrip('/').rstrip('/')
         if (base_url.startswith("http://") or base_url.startswith("https://")):
             self.base_url = base_url
         else:
             self.base_url = "http://" + base_url            
         self.ollama_base_url=base_url
+        self.host=host
+        self.port=port
+        self.cors_policy=cors_policy
+        self.server = Flask("infollama_proxy")
+        self.ollama_version=None
+        self.ollama_running=False
+        self.env_vars=dict()
+        self.get_ollama_env_var()
+        if cors_policy == "*":
+            CORS(self.server)  # Enable CORS for all origins
+        else:
+            if cors_policy != "":
+                CORS(self.server, resources={"/": {"origins": self.cors_policy}})
 
     def __getattr__(self, name):
         if hasattr(InfollamaProxy, name):
@@ -32,7 +64,22 @@ class InfollamaProxy:
         raise AttributeError(f"'{name}' not found in InfollamaProxy")
 
     def __str__(self):
-        return f"InfollamaProxy(port={self.port}, base_url={self.base_url})"
+        return f"""InfollamaProxy(base_url={self.base_url}, 
+        host={self.host}, 
+        port={self.port}, 
+        cors_policy={self.cors_policy}, 
+        ollama_version={self.ollama_version}, 
+        ollama_running={self.ollama_running}, 
+        env_vars=[{self.env_vars}]"""
+
+    def get_ollama_env_var(self):
+        """Get the Ollama environment variables from the system"""
+        try:
+            self.env_vars.clear()
+            for key in ["OLLAMA_HOST", "OLLAMA_MODELS" ,"OLLAMA_MAX_LOADED_MODELS", "OLLAMA_NUM_PARALLEL", "OLLAMA_MAX_QUEUE", "OLLAMA_FLASH_ATTENTION", "OLLAMA_KV_CACHE_TYPE"]:
+                self.env_vars[key]=os.getenv(key)
+        except KeyError:
+            pass
 
     def create_url(self, endpoint: str):
         """Create a URL for the Ollama API, with base_url and endpoint"""
@@ -42,20 +89,20 @@ class InfollamaProxy:
     
     def get(self, endpoint, **kwargs):
         url = self.create_url(endpoint)
-        print(url)
         try:
             response = requests.get(url, params=kwargs)
+            if (utils.is_json(response.text)):
+                return response.json()      
+            else:
+                return response.text
         except Exception as e:
-            print(e);
-        return response.json()      
+            pytherminal.console(f"[error]{e}[/error]");
+            abort(500)
     
     def post(self, endpoint, data=None, **kwargs):
         url = self.create_url(endpoint)        
         response = requests.post(url, json=data, params=kwargs)
-        # Check if the response is streamed
-        #print("data", data)
         if data["stream"]==True:
-            print("Streaming data")
             for chunk in response.iter_content(chunk_size=1024): 
                 stream_Data=chunk.decode('utf-8')   # Get each chunk of data
                 return Response(stream_Data, mimetype='text/event-stream')
@@ -71,75 +118,143 @@ class InfollamaProxy:
         return response.json()
 
 
-    def check_connection(self):
+    # Check versions of module versus requirements.txt
+    def check_versions(self):
+        pythonVersion=utils.getPythonVersion()
+        OS=utils.getOS()
+        pytherminal.console(" ", False)
+        pytherminal.console(" You are running [b]Python V"+pythonVersion+"[/b] on [b]"+OS+"[/b]", False)
+        if utils.in_venv():
+            pytherminal.console(" [b] (venv) is activated[/b]", False)
+        else:
+            pytherminal.console(" [error] Carefull, (venv) is not activated. You may experience module version issues[/error]", False)
+
+
+    def check_ollama_connection(self):
         """
         Trying to connect to ollama server and checking if it's running."""
         try:
             response=requests.get(f"{self.ollama_base_url}")
+            self.ollama_running=True
             return True
         except requests.exceptions.RequestException as e:
-            print(f"Connection failed: {e}")
+            self.ollama_running=False
             return False
         
+        
+    def get_ollama_version(self):
+        """ Trying to read the /api/version to ensure this is a real ollama server on base_url. """
+        response=self.get("/api/version")
+        try:
+            self.ollama_version=response["version"]
+            self.ollama_running=True
+            return self.ollama_version
+        except Exception as e:
+            print(e)
+            self.ollama_running=False
+            self.ollama_version=None
+            return None        
 
 
 if __name__ == "__main__":
     multiprocessing.freeze_support()
+   
 
-    tjs_host="localhost"
-    tjs_port=11430
-    cors_policy="*"
+    ########## CONFIGURATION #################################################################################################################
+    tjs_host="localhost"                    # host of the proxy server
+    tjs_port=11430                          # port of the proxy server
+    cors_policy="*"                         # cors policy of the proxy server (* allows all origins, None fixes policy to same origin)
+    base_url="http://localhost:11434/"      # base url of the ollama server
+    ##########################################################################################################################################
 
-    proxy = InfollamaProxy()
-    response = proxy.check_connection()
-    print(response)
-    response = proxy.get("api/version")
-    print("proxy", proxy)
-    print(response)
+    # Reading the argument parameters
+    parser = argparse.ArgumentParser(description='Run a proxy filtered server to forward API requests to Ollama')
+    parser.add_argument('--host', type=str, default=tjs_host, help=f'The host name for the proxy server (default: {tjs_host})')
+    parser.add_argument('--port', type=str, default=tjs_port, help=f'The port for the proxy server (default: {tjs_port})')
+    args = parser.parse_args()
 
-    print(device.getDeviceInfo())  
+    proxy = InfollamaProxy(base_url=base_url, host=tjs_host, port=tjs_port, cors_policy=cors_policy )
+    #print("proxy after init()", proxy)
+
+    # Display on terminal the state of application.
+    pytherminal.console("[reverse][h1]*******************    Ollama Localhost Proxy V "+OLLAMA_PROXY_RELEASE+" started    ******************[/h1][/reverse]", False)
+    pytherminal.console("  [ok]Thanx for using. Please report issues and ideas on[/ok]", False)
+    pytherminal.console("  [url]https://github.com/toutjavascript/ollama-localhost-proxy[/url]", False) 
+    proxy.check_versions()
+    #print("proxy after check_versions()", proxy)
+    proxy.check_ollama_connection()
+    #print("proxy after check_ollama_connection()", proxy)
+    if proxy.ollama_running:
+        proxy.get_ollama_version()
+        if (proxy.ollama_version is not None):
+            pytherminal.console(f"[green]Ollama [u]V {proxy.ollama_version}[/u] is running @[url]{proxy.ollama_base_url}[/url][/green]", False)
+        else:
+            pytherminal.console(f"[error]Are you sure Ollama is running @[url]{proxy.ollama_base_url}[/url][/error]", False)
+    else:
+        pytherminal.console(f"[error]Ollama not found or stopped @[url]{proxy.ollama_base_url}[/url][/error]", False)
+
+
+    pprint(device.get_device_info())  
     
     appPath=utils.getAppPath()
-    app = Flask(__name__)
-    if cors_policy == "*":
-        CORS(app)  # Enable CORS for all routes
+    # Prevent http flask web server logging in terminal 
+    #log = logging.getLogger('werkzeug')
+    #log.disabled = True
+    
+    if proxy.ollama_running:
+        pytherminal.console(f"[ok]Ollama Localhost Proxy server is listening your LLM API Calls @[url]{proxy.host}:{proxy.port}[/url][/ok]", False)
+        pytherminal.console(f"[ok]Ollama and Host hardware informations are displayed in this web UI: [url]http://{proxy.host}:{proxy.port}/info[/url][/ok]", False)
+    else:
+        pytherminal.console(f"[error]Ollama Localhost Proxy server is running on port @ [url]{proxy.host}:{proxy.port}[/url] but Ollama not found[/error]", False)
 
-    @app.route('/')
-    def home():
+
+    # Define the proxy server routes
+    @proxy.server.route('/info')
+    def info():
+        """ Serve the home page with localhost hardware informations & ollama server details (models available, models running, etc)"""
         return render_template('index.html', release=OLLAMA_PROXY_RELEASE)
 
-    @app.route('/favicon.png', methods=['GET'])
+    @proxy.server.route('/favicon.ico', methods=['GET'])
     def serveFavicon():
-        return send_from_directory(os.path.join(appPath, 'static/picto'), 'favicon.png', mimetype='image/vnd.microsoft.icon')
+        """ Serve the favicon.ico file (to avoid 404 errors)"""
+        return send_from_directory(os.path.join(appPath, 'static/picto'), 'llama.png', mimetype='image/vnd.microsoft.icon')
 
-    @app.route('/robots.txt', methods=['GET'])
+    @proxy.server.route('/robots.txt', methods=['GET'])
     def serveRobots():
+        """ Serve the robots.txt file (to avoid 404 errors)"""
         return "deny: all"
 
 
+    @proxy.server.route('/')
+    def home():
+        return proxy.get("", **request.args)
+    
+    @proxy.server.route('/<path:path>', methods=['GET', 'POST', 'OPTIONS'])
+    def catch_all(path):
+        """ Catch all routes and forward them to the ollama server """
+        if request.method == 'GET':
+            # A simple get request will be forwarded to the ollama server
+            return proxy.get(path, **request.args)
+        elif request.method == 'POST':
+            # A POST request will be forwarded to the ollama server and must be streamed
+            url=proxy.create_url(path)
+            return Response(stream_with_context(stream_request('POST', url, json=request.json, params=request.args)), content_type=request.headers.get('Content-Type'))
+        elif request.method == 'OPTIONS':
+            # Handle CORS preflight requests called by browsers on the frontend when cors origin must be checked
+            return '', 204 
+        else:
+            return "Method not allowed", 405
+
+    # Manage the streaming chat completions
     def stream_request(method, url, **kwargs):
+        """ Stream a request to the ollama server with Flask """
         with requests.request(method, url, stream=True, **kwargs) as r:
             for chunk in r.iter_content(chunk_size=8192):
                 if chunk:
                     yield chunk
 
-    # Serve all the other endpoints with flask
-    @app.route('/<path:path>', methods=['GET', 'POST', 'OPTIONS'])
-    def catch_all(path):
-        if request.method == 'GET':
-            return proxy.get(path, **request.args)
-        elif request.method == 'POST':
-            # print("Method POST received", "path: ", path, "json: ", request.json)
-            #return proxy.post(path, request.json, **request.args)
-            url=proxy.create_url(path)
-            print(url)
-            return Response(stream_with_context(stream_request('POST', url, json=request.json, params=request.args)), content_type=request.headers.get('Content-Type'))
-    
-        elif request.method == 'OPTIONS':
-            # Handle CORS preflight requests
-            return '', 204 
-        else:
-            return "Method not allowed", 405
 
 
-    app.run(host=tjs_host, port=tjs_port)
+    # Starting the Flask proxy server with the specified host and port
+    proxy.server.run(host=tjs_host, port=tjs_port)
+

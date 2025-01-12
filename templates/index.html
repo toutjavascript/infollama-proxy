@@ -1,19 +1,38 @@
-<h1>Local Proxy Ollama</h1>
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Local Proxy Ollama</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+      }
+    </style>
+    <link rel="shortcut icon" href="/favicon.ico" />
+  </head>
+  <body>
+    <h1>Ollama Localhost Proxy V {{ release }}</h1>
 
-<h2>Run your Flask app with gunicorn:</h2>
-<pre>pip install gunicorn</pre>
+    <h2>Run your Flask app with gunicorn:</h2>
+    <pre>pip install gunicorn</pre>
 
-<p>
-  create a file named `wsgi.py` in the same directory as your Flask application.
-</p>
-<pre>
+    <p>
+      create a file named `wsgi.py` in the same directory as your Flask
+      application.
+    </p>
+    <pre>
 # filepath: /Users/olivierhondermarck/Documents/cloud/dunod/IA/python/infollama/wsgi.py
 
 from proxy import app
 
 if __name__ == "__main__":
     app.run()
-</pre>
+</pre
+    >
 
-Run app :
-<pre>gunicorn --bind 0.0.0.0:11430 wsgi:app</pre>
+    Run app :
+    <pre>gunicorn --bind 0.0.0.0:11430 wsgi:app</pre>
+  </body>
+</html>
