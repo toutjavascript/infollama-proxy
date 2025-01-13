@@ -28,7 +28,7 @@ anonymous_allowed_endpoints=  ["api/tags", "v1/models", "api/version"]
 # Only users with a valid token can access that endpoints
 user_allowed_endpoints= ["api/show",
                          "api/version",
-                         "api/ps", 
+                         "api/ps",
                          "api/generate",
                          "api/chat",
                          "api/embed",
@@ -37,7 +37,8 @@ user_allowed_endpoints= ["api/show",
                          "v1/models",
                          "v1/models/",
                          "v1/embeddings",
-                         "info/device"
+                         "info/device",
+                         "info/ps"
                         ]
 # Only users with a valid admin token can access that endpoints
 admin_allowed_endpoints=["api/create", "api/copy", "api/delete", "api/pull", "api/push",
@@ -204,6 +205,15 @@ class InfollamaProxy:
         except Exception as e:
             return "0.0.0.0"
     
+    def get_info_ps(self, headers) -> dict:
+        """Get running models with computed informations"""
+        try:
+            ps = self.get("api/ps", headers)
+            for model in ps["models"]:
+                model["expires_in"] = utils.get_diff_date(model.get("expires_at"))
+            return ps
+        except Exception as e:
+            return {"error": str(e)}
 
     def get_ollama_env_var(self) -> None:
         """Get the Ollama environment variables from the system"""
@@ -399,6 +409,15 @@ if __name__ == "__main__":
             return proxy.device
         else:
             return abort(403)
+        
+    @proxy.server.route("/info/ps")
+    def info_ps():
+        """ Get running models with computed informations """
+        if proxy.check_user_access(request.headers, "info/ps").is_authorised:
+            return proxy.get_info_ps(request.headers)
+        else:
+            return abort(403)
+
 
     @proxy.server.route('/favicon.ico', methods=['GET'])
     def serveFavicon():

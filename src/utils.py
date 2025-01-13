@@ -4,6 +4,7 @@ import importlib.metadata
 import sys
 import platform
 import json
+import datetime
 
 # Return true if the python script is running in a venv environment
 def in_venv():
@@ -30,7 +31,21 @@ def formatBytes(B, round_to=2):
         return "{0:.2f} GB".format(B/GB)
     elif TB <= B:
         return "{0:.2f} TB".format(B/TB)
+
+def get_diff_date(dt1, dt2="now"):
+    if dt2 == "now":
+        dt2 = datetime.datetime.now().isoformat()
+    dt1 = datetime.datetime.fromisoformat(dt1)
+    dt2 = datetime.datetime.fromisoformat(dt2)
     
+    if dt1.tzinfo is None and dt2.tzinfo is not None:
+        dt1 = dt1.replace(tzinfo=dt2.tzinfo)
+    elif dt1.tzinfo is not None and dt2.tzinfo is None:
+        dt2 = dt2.replace(tzinfo=dt1.tzinfo)
+    
+    delta = dt1 - dt2
+    return str(round(delta.total_seconds() / 60))+" min"  # return difference in minutes
+
 
 def formatFrequencies(H, round_to=1):
     H = float(H)
