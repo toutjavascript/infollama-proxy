@@ -37,7 +37,7 @@ user_allowed_endpoints= ["api/show",
                          "v1/models",
                          "v1/models/",
                          "v1/embeddings",
-                         "info/api/"
+                         "info/device"
                         ]
 # Only users with a valid admin token can access that endpoints
 admin_allowed_endpoints=["api/create", "api/copy", "api/delete", "api/pull", "api/push",
@@ -50,6 +50,9 @@ class InfollamaUser:
         self.token=token
     def __str__(self):
         return f"User: {self.user_name}, Type: {self.user_type}"
+    def to_dict(self):
+        return {"user_type": self.user_type, "user_name": self.user_name, "token": self.token}
+
 
 class InfollamaAccess:
     def __init__(self, user_name: str, is_authorised: bool, desc: str):
@@ -60,7 +63,19 @@ class InfollamaAccess:
         if (self.is_authorised):
             return f"Access to {self.user_name} is authorised ({self.desc})"
         else:
-            return f"Access to {self.user_name} is not forbidden ({self.desc})"
+            return f"Access to {self.user_name} is forbidden ({self.desc})"
+
+class InfollamaPing:
+    def __init__(self, ping: bool, user: InfollamaUser):
+        self.ping=ping
+        self.user=user
+    def __str__(self):
+        return f"Ping status: {self.ping}, User: {self.user}"
+    def to_dict(self):
+        return {
+            'ping': self.ping,
+            'user': self.user.to_dict()
+        }
 
 class InfollamaProxy:
     def __init__(self, base_url, host, port, cors_policy, user_file, log_level="ALL"):
@@ -82,6 +97,7 @@ class InfollamaProxy:
         self.log_file="proxy.log"
         self.users=[]
         self.get_ollama_env_var()
+        self.device=self.update_device_info()
         if cors_policy == "*":
             CORS(self.server)  # Enable CORS for all origins
         else:
@@ -92,7 +108,7 @@ class InfollamaProxy:
         if hasattr(InfollamaProxy, name):
             return getattr(InfollamaProxy, name)
         raise AttributeError(f"'{name}' not found in InfollamaProxy")
-    
+
     def __str__(self):
         users = ", ".join([f"{user.user_name} is {user.user_type}" for user in self.users])
         return f"""InfollamaProxy(base_url={self.base_url}, 
@@ -104,6 +120,11 @@ class InfollamaProxy:
         env_vars=[{self.env_vars}],
         users=[{users}]"""
     
+    def update_device_info(self) -> dict:
+        """Get device information"""
+        # Implement logic to retrieve device information
+        return device.get_device_info()
+    
     def log_event(self, event, log_level=0) -> None:
         """Log an event to the console and the log_file file"""
         ip=self.get_user_ip()
@@ -111,7 +132,6 @@ class InfollamaProxy:
         try:
             with open(self.log_file, "a") as log_file:
                 now=datetime.datetime.now()
-
                 log_file.write(f"{now}  {ip}  {event}\n")
         except Exception as e:
             print(f"Error logging event: {e}")
@@ -137,6 +157,9 @@ class InfollamaProxy:
         except FileNotFoundError:
             print(f"User file {self.user_file} not found. No user auth definition.")
 
+
+        
+
     def get_user(self, token: str) -> InfollamaUser:
         """Return an InfollamaUser object based on the token"""
         if (token is None): 
@@ -144,7 +167,7 @@ class InfollamaProxy:
         for user in self.users:
             if user.token == token:
                 return user
-        return None
+        return InfollamaUser("anonymous", "anonymous", "")
     
     def get_token(self, headers = None) -> str:
         """Return the token passed in Bearer Authorization header or return None if not found"""
@@ -158,14 +181,13 @@ class InfollamaProxy:
     def check_user_access(self, headers: str, endpoint: str) -> InfollamaAccess:
         """Check if the token is associated to a user who has access to the specified endpoint"""
         token=self.get_token(headers)
-
         user=self.get_user(token)
         # Check wich endpoints are allowed for the user type
         if user.user_type=="anonymous":
             allowed_endpoints=anonymous_allowed_endpoints
-        if user.user_type=="user":
+        elif user.user_type=="user":
             allowed_endpoints=anonymous_allowed_endpoints+user_allowed_endpoints
-        if user.user_type=="admin":
+        elif user.user_type=="admin":
             allowed_endpoints=anonymous_allowed_endpoints+user_allowed_endpoints+admin_allowed_endpoints
 
         if endpoint not in allowed_endpoints:
@@ -203,7 +225,9 @@ class InfollamaProxy:
         access=self.check_user_access(headers, endpoint)
         if access.is_authorised is False:
             self.log_event(f"Rejected GET request by {access.user_name} for {endpoint}", log_level=9)
-            return False
+            # return a status code 403 to flask server
+            return abort(403)
+
         self.log_event(f"Accepted GET request by {access.user_name} for {endpoint}", log_level=1)
 
         url = self.create_url(endpoint)
@@ -215,17 +239,17 @@ class InfollamaProxy:
                 return response.text
         except Exception as e:
             pytherminal.console(f"self.get() [error]{e}[/error]");
-            abort(500)
+            return abort(500)
     
     def post(self, endpoint, headers, data=None, **kwargs):
         access=self.check_user_access(headers, endpoint)
         if access.is_authorised is False:
-            self.log_event(f"Rejected GET request by {access.user_name} for {endpoint}", log_level=9)
+            self.log_event(f"Rejected POST request by {access.user_name} for {endpoint}", log_level=9)
             return False
-        self.log_event(f"Accepted GET request by {access.user_name} for {endpoint}", log_level=1)
+        self.log_event(f"Accepted POST request by {access.user_name} for {endpoint}", log_level=1)
 
         url = self.create_url(endpoint)     
-        try:   
+        try:
             response = requests.post(url, json=data, params=kwargs)
             if (utils.is_json(response.text)):
                 return response.json()      
@@ -298,7 +322,7 @@ if __name__ == "__main__":
     tjs_host="localhost"                    # host of the proxy server
     tjs_port=11430                          # port of the proxy server
     cors_policy="*"                         # cors policy of the proxy server (* allows all origins, None fixes policy to same origin)
-    base_url="http://localhost:11434/"      # base url of the ollama server
+    base_url="http://localhost:11434/"      # base url of the Ollama server
     user_file="users.conf"                  # path to the user file containing credentials
     log_level="INFO"                        # log level of the proxy server
     log_file="proxy.log"                    # path to the log file for the proxy server
@@ -318,7 +342,6 @@ if __name__ == "__main__":
     pytherminal.console("  [ok]Thanx for using. Please report issues and ideas on[/ok]", False)
     pytherminal.console("  [url]https://github.com/toutjavascript/ollama-localhost-proxy[/url]", False) 
     proxy.print_versions()
-    #print("proxy after check_versions()", proxy)
     proxy.check_ollama_connection()
     if proxy.ollama_running:
         proxy.get_ollama_version()
@@ -331,7 +354,6 @@ if __name__ == "__main__":
         pytherminal.console(f"[error]Ollama not found or stopped @[url]{proxy.ollama_base_url}[/url][/error]", False)
 
 
-    #pprint(device.get_device_info())  
 
     proxy.load_user_file()
     
@@ -353,6 +375,31 @@ if __name__ == "__main__":
         """ Serve the home page with localhost hardware informations & ollama server details (models available, models running, etc)"""
         return render_template('index.html', release=OLLAMA_PROXY_RELEASE)
 
+    @proxy.server.route("/info/ping",  methods=['GET', 'POST'])
+    def ping():
+        """ Ping the Ollama server to check if it's running and get user/token information """
+        user=proxy.get_user(proxy.get_token(request.headers))
+        ping=InfollamaPing(False, user)
+
+        try:            
+            response = proxy.get("api/tags", request.headers)
+            if response:
+                ping.ping=True
+                return ping.to_dict()
+            else:
+                return ping.to_dict()
+        except requests.RequestException as e:
+            return ping.to_dict()
+    
+    @proxy.server.route("/info/device")
+    def info_device():
+        """ Get device information only to authorized users """
+        if proxy.check_user_access(request.headers, "info/device").is_authorised:
+            device.get_device_info()
+            return proxy.device
+        else:
+            return abort(403)
+
     @proxy.server.route('/favicon.ico', methods=['GET'])
     def serveFavicon():
         """ Serve the favicon.ico file (to avoid 404 errors)"""
@@ -365,7 +412,7 @@ if __name__ == "__main__":
 
     @proxy.server.route('/')
     def home():
-        return proxy.get("", "FROM-PYTHON", **request.args)
+        return proxy.get("", None, **request.args)
     
     @proxy.server.route('/<path:path>', methods=['GET', 'POST', 'OPTIONS'])
     def catch_all(path):

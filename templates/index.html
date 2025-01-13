@@ -6,33 +6,317 @@
     <title>Local Proxy Ollama</title>
     <style>
       body {
-        font-family: Arial, sans-serif;
-        margin: 20px;
+        font-family: Verdana, Arial, sans-serif;
+        margin: 14px;
+      }
+      span.error {
+        color: #d00;
+        font-weight: bold;
+      }
+      span.success {
+        color: #0a0;
+        font-weight: bold;
+      }
+      div#div-connect {
+        border: 2px solid #ccc;
+        padding: 10px;
+        margin-bottom: 15px;
+      }
+      div#div-ui {
+        border: 2px solid #ccc;
+        padding: 10px;
+        margin-bottom: 15px;
       }
     </style>
     <link rel="shortcut icon" href="/favicon.ico" />
+
+    <style type="text/css"></style>
+
+    <script>
+      const user = {
+        user_name: "",
+        user_type: "",
+      };
+      const proxy = {
+        models: [],
+        ps: [],
+        device: {},
+        lastPing: 0,
+        lastPingSuccess: 0,
+        nbPing: 0,
+      };
+
+      function getCookie(name) {
+        var nameEQ = name + "=";
+        var ca = document.cookie.split(";");
+        for (var i = 0; i < ca.length; i++) {
+          var c = ca[i];
+          while (c.charAt(0) == " ") c = c.substring(1, c.length);
+          if (c.indexOf(nameEQ) == 0)
+            return decodeURIComponent(c.substring(nameEQ.length, c.length));
+        }
+        return null;
+      }
+      function setCookie(name, value, days) {
+        var expires = "";
+        if (days) {
+          var date = new Date();
+          date.setTime(date.getTime() + days * 24 * 60 * 60 * 1000);
+          expires = "; expires=" + date.toUTCString();
+        }
+        var cookieString = name + "=" + value + expires + "; path=/";
+        console.log("Setting cookie: " + cookieString);
+        document.cookie = cookieString;
+      }
+      function logOut() {
+        var token = getCookie("proxy-token");
+        if (token) {
+          setCookie("proxy-token", "", -1);
+          document.cookie =
+            "token=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
+        }
+      }
+
+      function ping() {
+        return new Promise((resolve, reject) => {
+          var token = getCookie("proxy-token");
+          proxy.lastPing = new Date();
+          proxy.nbPing++;
+          if (token) {
+            fetch("/info/ping", {
+              method: "GET",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: "Bearer " + token,
+              },
+            })
+              .then((response) => response.json())
+              .then((data) => {
+                proxy.lastPingSuccess = new Date();
+                document.getElementById("ping-result").innerHTML =
+                  JSON.stringify(data);
+                proxy.lastPingData = resolve(data);
+              })
+              .catch((error) => {
+                console.error("Error on ping():", error);
+                reject(error);
+              });
+          } else {
+            document.getElementById("ping-result").innerHTML =
+              "Please log in to see the UI.";
+            reject(error);
+          }
+        });
+      }
+
+      function getDevice() {
+        return new Promise((resolve, reject) => {
+          var token = getCookie("proxy-token");
+          if (token) {
+            fetch("/info/device", {
+              method: "GET",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: "Bearer " + token,
+              },
+            })
+              .then((response) => response.json())
+              .then((data) => {
+                proxy.device = data;
+                resolve(data);
+              })
+              .catch((error) => {
+                console.error("Error on getDevice():", error);
+                reject(error);
+              });
+          } else {
+            const message = "Please give a valid token to see the UI.";
+            document.getElementById("promise-result").innerHTML = message;
+            reject(message);
+          }
+        });
+      }
+
+      function getPS() {
+        return new Promise((resolve, reject) => {
+          var token = getCookie("proxy-token");
+          console.log("token: " + token);
+          if (token) {
+            fetch("/api/ps", {
+              method: "GET",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: "Bearer " + token,
+              },
+            })
+              .then((response) => response.json())
+              .then((data) => {
+                proxy.ps = data.models;
+                resolve(data);
+              })
+              .catch((error) => {
+                console.error("Error on getPS():", error);
+                reject(error);
+              });
+          } else {
+            const message = "Please give a valid token to see the UI.";
+            document.getElementById("promise-result").innerHTML = message;
+            reject(message);
+          }
+        });
+      }
+
+      function getModels() {
+        return new Promise((resolve, reject) => {
+          var token = getCookie("proxy-token");
+          console.log("token: " + token);
+          if (token) {
+            fetch("/api/tags", {
+              method: "GET",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: "Bearer " + token,
+              },
+            })
+              .then((response) => response.json())
+              .then((data) => {
+                proxy.models = data.models;
+                resolve(data);
+              })
+              .catch((error) => {
+                console.error("Error on getModels():", error);
+                reject(error);
+              });
+          } else {
+            const message = "Please give a valid token to see the UI.";
+            document.getElementById("promise-result").innerHTML = message;
+            reject(message);
+          }
+        });
+      }
+
+      /* Check if the token is valid by a call to the proxy server. If valid, store to cookie and start */
+      function send_token(token) {
+        document.getElementById("div-check-token").innerHTML;
+        var checked = false;
+        if (token != "") {
+          if (token.length > 10) {
+            if (token.substring(0, 4) == "pro_") {
+              checked = true;
+            }
+          }
+        }
+        if (!checked) {
+          document.getElementById("div-check-token").innerHTML =
+            "<span class='error'>Token is not well formatted. It must start with 'pro_' and be at least 10 characters long.</span>";
+          return false;
+        }
+
+        ping()
+          .then((data) => {
+            console.log(data);
+            if (data.ping == true) {
+              proxy.lastPingSuccess = new Date();
+              if (data.user.user_type == "anonymous") {
+                document.getElementById("div-check-token").innerHTML =
+                  "<span class='error'>Your token is not valid. Please check your token and try again.</span>";
+                return false;
+              } else {
+                document.getElementById(
+                  "div-check-token"
+                ).innerHTML = `<span class='success'>Token is valid. Your are logged as ${data.user.user_name}.</span>`;
+                setCookie("proxy-token", token, 100);
+                document.getElementById(
+                  "div-check-token"
+                ).innerHTML = `<span class='success'>Token is valid. Your are logged as ${data.user.user_name}.</span>`;
+                startUI();
+              }
+            } else if (data.ping == false) {
+              if (data.user.user_type == "anonymous") {
+                document.getElementById("div-check-token").innerHTML =
+                  "<span class='error'>Your token is not valid. Please check your token and try again.</span>";
+                return false;
+              }
+            } else {
+              document.getElementById("div-check-token").innerHTML =
+                "<span class='error'>An error occurred. Proxy seems to be down.</span>";
+              return false;
+            }
+          })
+          .catch((error) => {
+            console.error("Error:", error);
+            document.getElementById("div-check-token").innerHTML =
+              "<span class='error'>An error occurred. Proxy seems to be down.</span>";
+            return false;
+          });
+      }
+
+      /* Launch the UI when a valid token is provided */
+      function startUI() {
+        setTimeout(() => {
+          document.getElementById("div-connect").style.display = "none";
+        }, 500);
+        document.getElementById("div-ui").style.display = "block";
+
+        Promise.all([getModels(), getPS(), getDevice()])
+          .then((results) => {
+            const [models, ps, device] = results;
+            console.log("Models:", models);
+            console.log("PS:", ps);
+            console.log("Device:", device);
+
+            document.getElementById("div-ui").innerHTML =
+              "<pre>" + JSON.stringify(proxy, null, 2) + "</pre>";
+            heartBeat();
+          })
+          .catch((error) => {
+            console.error("Error on startUI() :", error);
+            document.getElementByI("promise-result").innerHTML =
+              "<span class='error'>An error occurred. Proxy seems to be down.</span>";
+            return false;
+          });
+      }
+
+      /* Heart Beat of the UI app to check connexion and LLM server usage */
+      function heartBeat() {
+        setInterval(() => {
+          ping()
+            .then((data) => {
+              console.log("Ping Response:", data);
+              document.getElementById("div-check-token").innerHTML =
+                "<span class='success'>Proxy is up and running.</span>";
+            })
+            .catch((error) => {
+              console.error("Error on heartBeat() :", error);
+              document.getElementById("div-check-token").innerHTML =
+                "<span class='error'>An error occurred. Proxy seems to be down.</span>";
+            });
+        }, 10000); // Check every 10 seconds
+      }
+    </script>
   </head>
   <body>
-    <h1>Ollama Localhost Proxy V {{ release }}</h1>
+    <h1>Ollama Localhost Proxy v{{ release }} is running</h1>
 
-    <h2>Run your Flask app with gunicorn:</h2>
-    <pre>pip install gunicorn</pre>
-
-    <p>
-      create a file named `wsgi.py` in the same directory as your Flask
-      application.
-    </p>
-    <pre>
-# filepath: /Users/olivierhondermarck/Documents/cloud/dunod/IA/python/infollama/wsgi.py
-
-from proxy import app
-
-if __name__ == "__main__":
-    app.run()
-</pre
-    >
-
-    Run app :
-    <pre>gunicorn --bind 0.0.0.0:11430 wsgi:app</pre>
+    <div id="div-connect">
+      <form>
+        <label for="token">Your Token:</label>
+        <input
+          type="text"
+          id="token"
+          name="token"
+          value="pro_12345678900000"
+          required
+        />
+        <br /><br />
+        <button type="button" onclick="send_token(this.form.token.value)">
+          Enter UI
+        </button>
+      </form>
+    </div>
+    <div id="div-check-token"></div>
+    <div id="promise-result"></div>
+    <div id="div-ui"></div>
+    <div id="ping-result"></div>
   </body>
 </html>

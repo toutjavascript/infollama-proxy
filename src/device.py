@@ -77,7 +77,6 @@ def get_device_info():
         l3_cache_size=0
         ram_installed=0
         
-        print("type(ram_info)", type(ram_info))
 
 
         cpu_freq = cpu_name.get("hz_advertised", cpu_util.max)
@@ -94,12 +93,16 @@ def get_device_info():
 
         os_name=platform.system()
         cpu_brand=cpu_name.get("vendor_id_raw")
-        print("platform.platform().upper()", platform.platform().upper())
-        if (platform.platform().upper().startswith("MACOS")):
+        os_detail=platform.platform()
+        if (os_detail.upper().startswith("MACOS")):
             cpu_brand="Apple"
-            os_name="macOS "+os_name
+            versions=os_detail.split("-")
+            os_version=versions[1]
+            os_name="macOS "+os_name+" "+os_version
+        
+        import socket
+        hostname = socket.gethostname()
 
-        #new object to return 
         device = {
             "detected": True,
             "raw": {
@@ -126,8 +129,9 @@ def get_device_info():
             "gpus": gpu_info,
             "getDeviceInfoTime": end_time - start_time0,
             "os_name": os_name,
-            "os_version": platform.release(),
+            "os_version": os_version,
             "os_details": platform.platform(),
+            "hostname": hostname,
             "description": ""
         }
 
@@ -177,6 +181,7 @@ def get_device_info():
             "os_name": platform.system(),
             "os_version": platform.release(),
             "os_details": platform.platform(),
+            "hostname": "",
             "description": "Hardware not detected"
         }
 
