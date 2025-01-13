@@ -44,7 +44,10 @@ def get_diff_date(dt1, dt2="now"):
         dt2 = dt2.replace(tzinfo=dt1.tzinfo)
     
     delta = dt1 - dt2
-    return str(round(delta.total_seconds() / 60))+" min"  # return difference in minutes
+    if round(delta.total_seconds() / 60)>0:
+        return str(round(delta.total_seconds() / 60))+" min"  # return difference in minutes
+    return str(round(delta.total_seconds() / 60 / 60))+" sec"  # return difference in seconds
+
 
 
 def formatFrequencies(H, round_to=1):

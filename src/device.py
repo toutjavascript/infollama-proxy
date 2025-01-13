@@ -93,13 +93,19 @@ def get_device_info():
 
         os_name=platform.system()
         cpu_brand=cpu_name.get("vendor_id_raw")
+        os="Linux"
         os_detail=platform.platform()
         if (os_detail.upper().startswith("MACOS")):
             cpu_brand="Apple"
             versions=os_detail.split("-")
             os_version=versions[1]
+            os="Mac"
             os_name="macOS "+os_name+" "+os_version
-        
+
+        if (os_detail.upper().startswith("Win")):
+            os="Windows"
+
+
         import socket
         hostname = socket.gethostname()
 
@@ -128,6 +134,7 @@ def get_device_info():
             "hdd_free": hdd_info.free,
             "gpus": gpu_info,
             "getDeviceInfoTime": end_time - start_time0,
+            "os": os,
             "os_name": os_name,
             "os_version": os_version,
             "os_details": platform.platform(),

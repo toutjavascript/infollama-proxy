@@ -46,6 +46,10 @@
         font-size:14px;
         color: #6c7584;
       }
+      tr.highlight, tr.highlight td {
+        background-color: #0d0 !important;  
+        color: white !important; 
+      }
 
       /* Responsive mode */
       @media (max-width: 560px) {
@@ -336,19 +340,49 @@
           html+="<thead><tr><th class='sortable'>Name</th><th class='text-end sortable'>File Size</th><th class='text-end sortable'>Parameters</th><th class='text-end sortable'>Family</th><th class='text-end sortable'>Quantization</th></tr></thead>"
           html+="<tbody>"
           for(let i=0;i<proxy.models.length;i++){
-            pill1=`<span class="badge bg-info rounded-pill">${proxy.models[i].details.family}</span>`;
-            pill2=`<span class="badge bg-secondary rounded-pill">${proxy.models[i].details.parameter_size}</span>`;
-            pill3=`<span class="badge bg-secondary rounded-pill">${proxy.models[i].details.quantization_level}</span>`;
+            pill1=`<span class="badge bg-info rounded-pill">${sanitizeHTML(proxy.models[i].details.family)}</span>`;
+            pill2=`<span class="badge bg-secondary rounded-pill">${sanitizeHTML(proxy.models[i].details.parameter_size)}</span>`;
+            pill3=`<span class="badge bg-secondary rounded-pill">${sanitizeHTML(proxy.models[i].details.quantization_level)}</span>`;
             size+=proxy.models[i].size;
-            html+="<tr data-digest='"+proxy.models[i].digest+"'><td>"+proxy.models[i].name+"</td><td class='text-end' data-sort='"+proxy.models[i].size+"'>"+formatBytes(proxy.models[i].size)+"</td><td class='text-end'>"+pill2+"</td><td class='text-end'>"+pill1+"</td><td class='text-end' data-sort='"+proxy.models[i].details.quantization_level.replace(/([QF])/g,"")+"'>"+pill3+"</td></tr>";
+            html+="<tr data-digest='"+sanitizeHTML(proxy.models[i].digest)+"'><td>"+sanitizeHTML(proxy.models[i].name)+"</td><td class='text-end' data-sort='"+sanitizeHTML(proxy.models[i].size)+"'>"+formatBytes(proxy.models[i].size)+"</td><td class='text-end'>"+pill2+"</td><td class='text-end'>"+pill1+"</td><td class='text-end' data-sort='"+sanitizeHTML(proxy.models[i].details.quantization_level.replace(/([QF])/g,""))+"'>"+pill3+"</td></tr>";
           }
         title=`${proxy.models.length} model${proxy.models.length>1?"s":""} available using ${formatBytes(size)} on disk`;
           html+="</tbody>"
         }
         titleElement.innerHTML=title;
         tableElement.innerHTML=html;
-        makeTableSortable()
+        displayPS(); /* Force to refresh the tr highlight on running models */
+        makeTableSortable();        
       }
+
+      function displayDevice() {
+        const device=proxy.device
+        let icon=`b-windows`
+        if (device.os=="Linux") {
+          icon=`bi-linux`
+        } else if (device.os=="Mac") { 
+          icon=`bi-apple`
+        }
+
+        const deviceElement=document.getElementById("card-device")
+        let ram_used=device.ram_installed-device.ram_available;
+        const ramUsagePercentage = Math.round((ram_used / device.ram_installed) * 100);
+        html=`Proxy is running on <i class="bi ${icon}" style="font-size: 1.2rem;" title="Windows"></i> ${sanitizeHTML(device.cpu_name)}<br>
+        <b>CPU threads:</b> ${sanitizeHTML(device.cpu_threads)}<br>
+        <b>Installed RAM:</b> ${formatBytes(device.ram_installed)}<br>
+        <div class="progress" style="height: 20px; margin-bottom: 5px;">
+        <div id="ram-usage" class="progress-bar" role="progressbar" style="width: ${ramUsagePercentage}%; background-color: ${ramUsagePercentage > 80 ? 'red' : 'green'};" aria-valuenow="${ramUsagePercentage}" aria-valuemin="0" aria-valuemax="100">${ramUsagePercentage.toFixed(0)}%</div>
+        </div>
+        <b>OS Version:</b> ${sanitizeHTML(device.os_name)}<br>
+
+        <b>GPU:</b> ${sanitizeHTML(device.gpus)}<br>
+
+
+        
+        `
+        deviceElement.innerHTML=html
+      }
+
 
       /* Display running model on the card */
       function displayPS() {
@@ -359,7 +393,7 @@
           title="No Model Running"
           html="<thead><tr><th>No Model Running</th></tr></thead>"
         } else {          
-          html+="<thead><tr><th>Name</th><th colspan='2'>RAM Size</th><th>Expires</th></tr></thead>"
+          html+="<thead><tr><th>Name</th><th colspan='2' class='text-center'>RAM Size</th><th class='text-end'>Expires</th></tr></thead>"
           html+="<tbody>"
           let ram=0;
           for(let i=0;i<proxy.ps.length;i++){
@@ -375,7 +409,7 @@
                 pill=`<span class="badge bg-warning rounded-pill">${pct}% GPU</span>`;
               }
             }
-            html+="<tr data-digest='"+proxy.ps[i].digest+"'><td>"+proxy.ps[i].name+"</td><td class='text-end'>"+formatBytes(proxy.ps[i].size)+"</td><td class='text-end'>"+pill+"</td><td class='text-end'>"+proxy.ps[i].expires_in+"</td></tr>";
+            html+="<tr data-digest='"+sanitizeHTML(proxy.ps[i].digest)+"'><td>"+sanitizeHTML(proxy.ps[i].name)+"</td><td class='text-end'>"+formatBytes(proxy.ps[i].size)+"</td><td class='text-end'>"+pill+"</td><td class='text-end'>"+sanitizeHTML(proxy.ps[i].expires_in)+"</td></tr>";
           }
           html+="</tbody>"
           title=`${proxy.ps.length} model${proxy.ps.length>1?"s":""} running, using ${formatBytes(ram)} RAM</title>`;
@@ -383,7 +417,15 @@
         tableElement.innerHTML=html;
         titleElement.innerHTML=title;
         // Update available models table to highlight the running models
-
+        $("table#table-available-models tr").each(function() {
+          const digest = $(this).data('digest');
+          const runningModel = proxy.ps.find(model => model.digest === digest);
+          if (runningModel) {
+            $(this).addClass("highlight");
+          } else {
+            $(this).removeClass("highlight");
+          }
+        });
 
       }
       
@@ -525,6 +567,7 @@
             console.log("Device:", device);
             displayPS()
             displayModels() 
+            displayDevice()
           })
           .catch((error) => {
             console.error("Error on startUI() :", error);
@@ -538,7 +581,9 @@
           Promise.all([getModels(), getPS(), getDevice()])
             .then((data) => {
               displayPS();  
-              displayModels()             
+              displayModels()            
+              displayDevice()
+
             })
             .catch((error) => {
               console.error("Error on heartBeat() :", error);
@@ -594,7 +639,7 @@
 
 
 
-    <nav class="navbar navbar-expand-lg navbar-light bg-light fixed-top p-0">
+    <nav class="navbar navbar-expand-lg navbar-light bg-light fixed-top p-0 shadow">
       <div class="container-fluid">
         <a class="navbar-brand" href="#">
           <img
@@ -645,9 +690,6 @@
       
       <div class="row">
         <div class="col-md-12">
-
-
-
           <div class="card mx-auto mt-4 shadow" style="max-width: 500px;">
             <div class="card-header">
               <h5 class="card-title mb-0"><i class="bi bi-key-fill"></i> Provide your token to access the web UI</h5>
@@ -680,15 +722,17 @@
                 </div>
             </div>
           </div>
+
+
+          
         </div>
       </div>
     </div>
 
     <div class="container mt-4 d-none" id="div-ui">
       <div class="row g-4">
-        <!-- Card 1 -->
-        <div class="col-md-4">
-          <div class="card">
+        <div class="col-md-4 p-0 px-2">
+          <div class="card mb-2">
             <div class="card-header">
               <h5 class="card-title mb-0" id="title-running-models">Running models</h5>
             </div>
@@ -699,10 +743,20 @@
               </div>
             </div>
           </div>
+
+          <div class="card mt-2">
+            <div class="card-header">
+              <h5 class="card-title mb-0">Device hardware details</h5>
+            </div>
+            <div class="card-body p-2 pt-0">
+              <div class="table-responsive"  id="card-device">
+                
+              </div>
+            </div>
+          </div>          
         </div>
 
-        <!-- Card 2 -->
-        <div class="col-md-8">
+        <div class="col-md-8 p-0 px-2">
           <div class="card">
             <div class="card-header">
               <h5 class="card-title mb-0" id="title-available-models">Available models</h5>
