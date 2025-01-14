@@ -97,7 +97,7 @@ def get_device_info():
             versions=os_detail.split("-")
             os_version=versions[1]
             if os_version=="10":
-                build=os_version[os_version.rfind(".")+1:]
+                build=os_detail[os_detail.rfind(".")+1:]
                 if (build>="22000"):
                     os_version="11"
             cpu_brand= cpu_name.get("vendor_id_raw")
