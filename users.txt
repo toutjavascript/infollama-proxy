@@ -1,3 +1,0 @@
-admin:INFOLLAMA_ADMIN1
-user1:INFOLLAMA_user1
-user2:INFOLLAMA_user2
