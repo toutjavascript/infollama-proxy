@@ -271,8 +271,8 @@ function displaySoft() {
   <div class=""><b>Cors Policy, Allow-Origin:</b> ${sanitizeHTML(
     proxy.ping.config.cors_policy
   )}</div>
-  <div class=""><b>LAN access:</b> ${lanAccess}</div>
-  <div class=""><b>WAN access:</b> Work in progress with Ngrok</div>
+  <div class=""><b>LAN API access:</b> ${lanAccess}</div>
+  <div class=""><b>WAN API access:</b> Work in progress with Ngrok</div>
   
   
   `;
@@ -346,7 +346,7 @@ function displayModels() {
 
 function displayDevice() {
   const device = proxy.device;
-  let icon = `b-windows`;
+  let icon = `bi-windows`;
   if (device.os == "Linux") {
     icon = `bi-linux`;
   } else if (device.os == "Mac") {
@@ -358,7 +358,8 @@ function displayDevice() {
   const ramUsagePercentage = Math.round(
     (ram_used / device.ram_installed) * 100
   );
-  let gpus = "";
+  let gpus = "",
+    discrete_gpus = "";
   for (i = 0; i < device.gpus.length; i++) {
     if (device.gpus[i].memoryTotal == 0) {
       gpus = "not found";
@@ -369,17 +370,22 @@ function displayDevice() {
     if (device.gpus.length > 1) {
       num = `#${i + 1} `;
     }
-    let vram = formatBytes(device.gpus[i].memoryTotal);
+    let vram = formatBytes(device.gpus[i].memoryTotal, 0);
     gpus += `<div>${num}${sanitizeHTML(
       device.gpus[i].name + " " + vram
     )}</div>`;
   }
+  discrete_gpus =
+    gpus != ""
+      ? `<b>Discrete GPU${device.gpus.length > 1 ? "s" : ""}:</b> ${gpus}<br>`
+      : "";
 
-  html = `Proxy is running on <i class="bi ${icon}" style="font-size: 1.2rem;" title="Windows"></i> ${sanitizeHTML(
-    device.cpu_name
+  html = `Proxy is running on <b>${sanitizeHTML(device.cpu_name)}</b><br>
+      <b>OS Version:</b> <i class="bi ${icon}" style="font-size: 1.2rem;" title=""></i> ${sanitizeHTML(
+    device.os + " " + device.os_version
   )}<br>
     <b>CPU threads:</b> ${sanitizeHTML(device.cpu_threads)}<br>
-    <b>Installed RAM:</b> ${formatBytes(device.ram_installed)}<br>
+    <b>Installed RAM:</b> ${formatBytes(device.ram_installed, 0)}<br>
     <div class="progress" style="height: 20px; margin-bottom: 5px;">
     <div id="ram-usage" class="progress-bar" role="progressbar" style="width: ${ramUsagePercentage}%; background-color: ${
     ramUsagePercentage > 80 ? "red" : "green"
@@ -387,9 +393,8 @@ function displayDevice() {
     0
   )}%</div>
     </div>
-    <b>OS Version:</b> ${sanitizeHTML(device.os_name)}<br>
 
-    <b>Discrete GPU${device.gpus.length > 1 ? "s" : ""}:</b> ${gpus}<br>
+    ${discrete_gpus}
     `;
   deviceElement.innerHTML = html;
 }

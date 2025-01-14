@@ -20,28 +20,16 @@ def get_device_info():
                     'serial': gpu.serial, 
                     'temperature': gpu.temperature, 
                     'load': gpu.load, 
-                    'memoryTotal': gpu.memoryTotal, 
-                    'memoryUtil': gpu.memoryUtil,
-                    'memoryUsed': gpu.memoryUsed,
-                    'memoryFree': gpu.memoryFree,
+                    'memoryTotal':gpu.memoryTotal if gpu.memoryTotal>100000 else gpu.memoryTotal*1024*1024, 
+                    'memoryUtil': gpu.memoryUtil if gpu.memoryUtil>100000 else gpu.memoryUtil*1024*1024,
+                    'memoryUsed': gpu.memoryUsed if gpu.memoryUsed>100000 else gpu.memoryUsed*1024*1024,
+                    'memoryFree': gpu.memoryFree if gpu.memoryFree>100000 else gpu.memoryFree*1024*1024,
                     'display_mode': gpu.display_mode,
                     'display_active': gpu.display_active
                     } 
                     for gpu in gpus]
     except:
-        gpu_info = [{
-            'id': "", 
-            'uuid': "", 
-            'name': "", 
-            'serial': "", 
-            'temperature': "", 
-            'load': "", 
-            'memoryTotal': 0, 
-            'memoryUtil': 0,
-            'memoryUsed': 0,
-            'memoryFree': 0,
-            'display_mode': "",
-            'display_active': ""}]
+        gpu_info = []
 
     end_time = timeit.default_timer()
     #print(f"Execution time GPUtil.getGPUs(): {end_time - start_time} seconds")
@@ -76,9 +64,9 @@ def get_device_info():
         cpu_name_text=""
         l3_cache_size=0
         ram_installed=0
-        
-
-
+        ram_available=0
+        os_version=""
+        cpu_max_freq=0
 
 
 
@@ -104,17 +92,23 @@ def get_device_info():
             ram_available=ram_info.available
             ram_installed=ram_info.total            
 
-        if (os_detail.upper().startswith("Win")):
+        if (os_name=="Windows"):
             os="Windows"
+            versions=os_detail.split("-")
+            os_version=versions[1]
+            if os_version=="10":
+                build=os_version[os_version.rfind(".")+1:]
+                if (build>="22000"):
+                    os_version="11"
             cpu_brand= cpu_name.get("vendor_id_raw")
-            cpu_name= cpu_name.get("brand_raw")
             cpu_freq= cpu_name.get("hz_advertised")[0]
-            cpu_max_freq= cpu_name.get("hz_advertised")
+            cpu_freq_max= cpu_name.get("hz_advertised")[0]
             l3_cache_size= cpu_name.get("l3_cache_size")
             ram_installed= ram_info[0]
-            ram_available= ram_info[0]
+            ram_available= ram_info[1]
+            cpu_name_text= cpu_name.get("brand_raw")
 
-
+        cpu_name_text=cpu_name_text.replace("Processor","").strip()
 
         import socket
         hostname = socket.gethostname()
@@ -131,9 +125,9 @@ def get_device_info():
             
             "cpu_brand": cpu_brand,
             "cpu_name": cpu_name_text,
-            "cpu_freq": cpu_freq_max,
+            "cpu_freq": cpu_freq,
             "cpu_threads": cpu_name.get("count"),
-            "cpu_max_freq": cpu_freq,
+            "cpu_max_freq": cpu_freq_max,
             "l3_cache_size": l3_cache_size,
             "cpu_arch": cpu_name.get("arch"),
             "ram_info": ram_info,
