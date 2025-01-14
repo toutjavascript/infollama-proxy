@@ -1,3 +1,8 @@
+## WARNING
+
+Very first pre alpha release shared to debug and test on various devices.
+Please report any issues or bugs you encounter during testing.
+
 # InfoLlama
 
 InfoLlama is a Python script that retrieves and displays a list of models from an Ollama server. It provides detailed information about each model, including name, size, family, quantization level, parameter size, and context length. The output is formatted and displayed in the terminal with BB code support for enhanced readability.
@@ -40,5 +45,5 @@ InfoLlama is a Python script that retrieves and displays a list of models from a
 Run the script with the following command:
 
 ```sh
-python infollama.py [--base_url BASE_URL] [--sort {date,name,size,family,context}] [--filter FILTER] [--version]
+python proxy.py
 ```

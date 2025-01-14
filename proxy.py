@@ -12,14 +12,16 @@ from flask_cors import CORS
 import src.pytherminal as pytherminal
 import src.device    as device
 import src.utils     as utils
+import src.lan       as lan
 from rich.pretty import pprint
 import datetime
+from typing import Optional
 
 from flask import Flask, render_template, request, send_from_directory, Response, stream_with_context, abort
 
 # Constants to identify version and execution modalities
 OLLAMA_PROXY_RELEASE="0.0.1"
-OLLAMA_MIN_RELEASE="0.5.0"
+OLLAMA_MIN_RELEASE="0.5.5"
 
 # List of endpoints that are allowed to be accessed by the different types of users
 # All users have access to that endpoints. This endpoints are necessary for the proxy to start and function properly. 
@@ -73,22 +75,51 @@ class InfollamaPing:
         self.ping=ping
         self.user=user
         self.ollama_version=""
+        self.proxy_version=OLLAMA_PROXY_RELEASE
+        self.config: Optional[InfollamaConfig] = None
     def __str__(self):
-        return f"Ping status: {self.ping}, User: {self.user}"
+        return f"Ping status: {self.ping}, User: {self.user}, Ollama version: {self.ollama_version}, Config: {self.config}"
     def to_dict(self):        
         return {
             'ping': self.ping,
+            'proxy_version': self.proxy_version,
             'ollama_version': self.ollama_version,
-            'user': self.user.to_dict_no_token()
+            'user': self.user.to_dict_no_token(),
+            'config': self.config.to_dict()
+        }
+
+class InfollamaConfig: 
+    def __init__(self, base_url, host, port, cors_policy, user_file, anonymous_access=False, log_level="ALL"):
+        self.base_url=base_url
+        self.host=host
+        self.port=port
+        self.cors_policy=cors_policy
+        self.user_file=user_file
+        self.log_level=log_level
+        self.anonymous_access=anonymous_access  
+        self.lan_ip=lan.get_lan_ip()
+    def __str__(self):
+        return f"Base URL: {self.base_url}, Host: {self.host}, Port: {self.port}, Cors Policy: {self.cors_policy}, User File: {self.user_file}, anonymous_access: {self.anonymous_access} Log Level: {self.log_level}, Lan IP: {self.lan_ip}"
+    def to_dict(self):        
+        return {
+            'base_url': self.base_url,
+            'host': self.host,
+            'port': self.port,
+            'cors_policy': self.cors_policy,
+            'user_file': self.user_file,
+            'log_level': self.log_level,
+            'lan_ip': self.lan_ip,
+            "anonymous_access": self.anonymous_access  
         }
 
 class InfollamaProxy:
-    def __init__(self, base_url, host, port, cors_policy, user_file, log_level="ALL"):
+    def __init__(self, base_url, host, port, cors_policy, user_file, log_file="proxy.log", anonymous_access=False, log_level="ALL"):
         base_url=base_url.rstrip('/').rstrip('/')
         if (base_url.startswith("http://") or base_url.startswith("https://")):
             self.base_url = base_url
         else:
             self.base_url = "http://" + base_url
+        self.config=InfollamaConfig(base_url, host, port, cors_policy, user_file, anonymous_access=anonymous_access, log_level=log_level)
         self.ollama_base_url=base_url
         self.host=host
         self.port=port
@@ -99,7 +130,7 @@ class InfollamaProxy:
         self.env_vars=dict()
         self.user_file=user_file
         self.log_level=log_level
-        self.log_file="proxy.log"
+        self.log_file=log_file
         self.users=[]
         self.get_ollama_env_var()
         self.device=self.update_device_info()
@@ -333,13 +364,14 @@ if __name__ == "__main__":
    
 
     ########## CONFIGURATION #################################################################################################################
-    tjs_host="localhost"                    # host of the proxy server
+    tjs_host="0.0.0.0"                      # host of the proxy server (localhost or 127.0.0.1 to keep on the same machine, 0.0.0.0 to allow connections from any machine)
     tjs_port=11430                          # port of the proxy server
     cors_policy="*"                         # cors policy of the proxy server (* allows all origins, None fixes policy to same origin)
     base_url="http://localhost:11434/"      # base url of the Ollama server
     user_file="users.conf"                  # path to the user file containing credentials
     log_level="INFO"                        # log level of the proxy server
     log_file="proxy.log"                    # path to the log file for the proxy server
+    anonymous_access=False                  # Allows anonymous access to all API without providing token (default false)
     ##########################################################################################################################################
 
     # Reading the argument parameters
@@ -348,7 +380,7 @@ if __name__ == "__main__":
     parser.add_argument('--port', type=str, default=tjs_port, help=f'The port for the proxy server (default: {tjs_port})')
     args = parser.parse_args()
 
-    proxy = InfollamaProxy(base_url=base_url, host=tjs_host, port=tjs_port, cors_policy=cors_policy, user_file=user_file )
+    proxy = InfollamaProxy(base_url=base_url, host=tjs_host, port=tjs_port, cors_policy=cors_policy, user_file=user_file, log_level=log_level, log_file=log_file,  anonymous_access=anonymous_access )
     #print("proxy after init()", proxy)
 
     # Display on terminal the state of application.
@@ -394,11 +426,11 @@ if __name__ == "__main__":
         """ Ping the Ollama server to check if it's running and get user/token information """
         user=proxy.get_user(proxy.get_token(request.headers))
         ping=InfollamaPing(False, user)
-
         try:
             response = proxy.get("api/tags", request.headers)
             if response:
                 ping.ping=True
+                ping.config=proxy.config
                 ping.ollama_version=proxy.ollama_version
                 return ping.to_dict()
             else:
