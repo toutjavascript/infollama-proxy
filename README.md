@@ -1,11 +1,13 @@
 # InfoLlama Proxy
 
-InfoLlama is a Python script that manage a proxy to Ollama
+InfoLlama is a Python script that manage a proxy to Ollama.
+
 InfoLlama also retrieves and displays usefull details about Ollama server (models, running models, size, ram usage, ...) and some hardware informations.
 
 ## WARNING
 
 Very first pre alpha release shared to debug and test on various devices.
+
 Please report any issues or bugs you encounter during testing.
 
 ## Features

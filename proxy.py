@@ -119,6 +119,7 @@ class InfollamaProxy:
             self.base_url = base_url
         else:
             self.base_url = "http://" + base_url
+        self.localhost="localhost"
         self.config=InfollamaConfig(base_url, host, port, cors_policy, user_file, anonymous_access=anonymous_access, log_level=log_level)
         self.ollama_base_url=base_url
         self.host=host
@@ -409,10 +410,10 @@ if __name__ == "__main__":
     #log.disabled = True
     
     if proxy.ollama_running:
-        pytherminal.console(f"[ok]Ollama Localhost Proxy server is listening your LLM API Calls @[url]{proxy.host}:{proxy.port}[/url][/ok]", False)
-        pytherminal.console(f"[ok]Ollama and Host hardware informations are displayed in this web UI: [url]http://{proxy.host}:{proxy.port}/info[/url][/ok]", False)
+        pytherminal.console(f"[ok]Ollama Localhost Proxy server is listening your LLM API Calls @[url]{proxy.localhost}:{proxy.port}[/url][/ok]", False)
+        pytherminal.console(f"[ok]Ollama and Host hardware informations are displayed in this web UI: [url]http://{proxy.localhost}:{proxy.port}/info[/url][/ok]", False)
     else:
-        pytherminal.console(f"[error]Ollama Localhost Proxy server is running on port @ [url]{proxy.host}:{proxy.port}[/url] but Ollama not found[/error]", False)
+        pytherminal.console(f"[error]Ollama Localhost Proxy server is running on port @ [url]{proxy.localhost}:{proxy.port}[/url] but Ollama not found[/error]", False)
 
 
     # Define the proxy server routes
@@ -504,6 +505,6 @@ if __name__ == "__main__":
 
     # Starting the Flask proxy server with the specified host and port
     proxy.log_event(" ", log_level=9)
-    proxy.log_event(f"Proxy server starting on {tjs_host}:{tjs_port}", log_level=9)
+    proxy.log_event(f"Proxy server starting on {proxy.localhost}:{tjs_port}", log_level=9)
     proxy.server.run(host=tjs_host, port=tjs_port)
 
