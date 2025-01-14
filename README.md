@@ -1,31 +1,31 @@
+# InfoLlama Proxy
+
+InfoLlama is a Python script that manage a proxy to Ollama
+InfoLlama also retrieves and displays usefull details about Ollama server (models, running models, size, ram usage, ...) and some hardware informations.
+
 ## WARNING
 
 Very first pre alpha release shared to debug and test on various devices.
 Please report any issues or bugs you encounter during testing.
 
-# InfoLlama
-
-InfoLlama is a Python script that retrieves and displays a list of models from an Ollama server. It provides detailed information about each model, including name, size, family, quantization level, parameter size, and context length. The output is formatted and displayed in the terminal with BB code support for enhanced readability.
-
 ## Features
 
+- Run a proxy with token that accesses to Ollama server API.
 - Retrieve and display a list of models from an Ollama server.
-- Sort models by date, name, size, family, or context length.
-- Filter models by name.
-- Display detailed information about each model.
+- Display usefull details about Ollama server (models, running models, size, ram usage, ...) and some hardware informations.
 
 ## Requirements
 
 - Python 3.13 or higher
-- `requests` library
+- Ollama server running on your local machine
 
 ## Installation
 
 1. Clone the repository:
 
    ```sh
-   git clone https://github.com/toutjavascript/infollama.git
-   cd infollama
+   git clone https://github.com/toutjavascript/infollama-proxy.git
+   cd infollama-proxy
    ```
 
 2. Create and activate a virtual environment:
@@ -47,3 +47,5 @@ Run the script with the following command:
 ```sh
 python proxy.py
 ```
+
+Open the browser and navigate to `http://localhost:11430/info` to access the InfoLlama Proxy web UI
