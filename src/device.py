@@ -79,21 +79,13 @@ def get_device_info():
         
 
 
-        cpu_freq = cpu_name.get("hz_advertised", cpu_util.max)
-        cpu_freq_max=cpu_name.get("hz_advertised", cpu_util.max)
-        if (cpu_freq<10000):
-            cpu_freq=cpu_freq*1e6
-            cpu_freq_max=cpu_freq_max*1e6
 
-        cpu_name_text=cpu_name.get("brand_raw")
-        l3_cache_size=cpu_name.get("l3_cache_size", 0)
-        ram_available=ram_info.available
-        ram_installed=ram_info.total
 
 
         os_name=platform.system()
         cpu_brand=cpu_name.get("vendor_id_raw")
         os="Linux"
+
         os_detail=platform.platform()
         if (os_detail.upper().startswith("MACOS")):
             cpu_brand="Apple"
@@ -101,9 +93,26 @@ def get_device_info():
             os_version=versions[1]
             os="Mac"
             os_name="macOS "+os_name+" "+os_version
+            cpu_freq = cpu_name.get("hz_advertised", cpu_util.max)
+            cpu_freq_max=cpu_name.get("hz_advertised", cpu_util.max)
+            if (cpu_freq<10000):
+                cpu_freq=cpu_freq*1e6
+                cpu_freq_max=cpu_freq_max*1e6
+
+            cpu_name_text=cpu_name.get("brand_raw")
+            l3_cache_size=cpu_name.get("l3_cache_size", 0)
+            ram_available=ram_info.available
+            ram_installed=ram_info.total            
 
         if (os_detail.upper().startswith("Win")):
             os="Windows"
+            cpu_brand= cpu_name.get("vendor_id_raw"),
+            cpu_name= cpu_name.get("brand_raw"),
+            cpu_freq= cpu_name.get("hz_advertised")[0],
+            cpu_max_freq= cpu_name.get("hz_advertised"),
+            l3_cache_size= cpu_name.get("l3_cache_size"),
+            ram_installed= ram_info[0],
+            ram_available= ram_info[1],
 
 
         import socket
@@ -185,6 +194,7 @@ def get_device_info():
             "hdd_free": "",
             "gpus": gpu_info,
             "getDeviceInfoTime": 0,
+            "os": os,
             "os_name": platform.system(),
             "os_version": platform.release(),
             "os_details": platform.platform(),

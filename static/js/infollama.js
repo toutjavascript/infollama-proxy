@@ -358,6 +358,23 @@ function displayDevice() {
   const ramUsagePercentage = Math.round(
     (ram_used / device.ram_installed) * 100
   );
+  let gpus = "";
+  for (i = 0; i < device.gpus.length; i++) {
+    if (device.gpus[i].memoryTotal == 0) {
+      gpus = "not found";
+      break;
+    }
+
+    let num = "";
+    if (device.gpus.length > 1) {
+      num = `#${i + 1} `;
+    }
+    let vram = formatBytes(device.gpus[i].memoryTotal);
+    gpus += `<div>${num}${sanitizeHTML(
+      device.gpus[i].name + " " + vram
+    )}</div>`;
+  }
+
   html = `Proxy is running on <i class="bi ${icon}" style="font-size: 1.2rem;" title="Windows"></i> ${sanitizeHTML(
     device.cpu_name
   )}<br>
@@ -372,7 +389,7 @@ function displayDevice() {
     </div>
     <b>OS Version:</b> ${sanitizeHTML(device.os_name)}<br>
 
-    <b>GPU:</b> ${sanitizeHTML(device.gpus)}<br>
+    <b>Discrete GPU${device.gpus.length > 1 ? "s" : ""}:</b> ${gpus}<br>
     `;
   deviceElement.innerHTML = html;
 }

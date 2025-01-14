@@ -387,7 +387,7 @@ if __name__ == "__main__":
     # Display on terminal the state of application.
     pytherminal.console("[reverse][h1]*******************    Ollama Localhost Proxy V "+OLLAMA_PROXY_RELEASE+" started    ******************[/h1][/reverse]", False)
     pytherminal.console("  [ok]Thanx for using. Please report issues and ideas on[/ok]", False)
-    pytherminal.console("  [url]https://github.com/toutjavascript/ollama-localhost-proxy[/url]", False) 
+    pytherminal.console("  [url]https://github.com/toutjavascript/infollama-proxy[/url]", False) 
     proxy.print_versions()
     proxy.check_ollama_connection()
     if proxy.ollama_running:

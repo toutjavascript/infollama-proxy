@@ -24,7 +24,7 @@ import src.pytherminal as pytherminal
 # Define main constants
 BASE_URL= "http://localhost:11434" 
 VERSION="0.1"
-GITHUB_REPO="https://github.com/toutjavascript/infollama"
+GITHUB_REPO="https://github.com/toutjavascript/infollama-proxy"
 
 #Define class for model information
 
