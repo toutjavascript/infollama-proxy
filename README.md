@@ -18,8 +18,9 @@ Please report any issues or bugs you encounter during testing.
 
 ## Requirements
 
-- Python 3.13 or higher
+- Python 3.11 or higher
 - Ollama server running on your local machine
+- Tested on Windows 10/11, macOS with Mx Silicon Chip
 
 ## Installation
 

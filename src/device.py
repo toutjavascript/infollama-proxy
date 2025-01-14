@@ -106,13 +106,14 @@ def get_device_info():
 
         if (os_detail.upper().startswith("Win")):
             os="Windows"
-            cpu_brand= cpu_name.get("vendor_id_raw"),
-            cpu_name= cpu_name.get("brand_raw"),
-            cpu_freq= cpu_name.get("hz_advertised")[0],
-            cpu_max_freq= cpu_name.get("hz_advertised"),
-            l3_cache_size= cpu_name.get("l3_cache_size"),
-            ram_installed= ram_info[0],
-            ram_available= ram_info[1],
+            cpu_brand= cpu_name.get("vendor_id_raw")
+            cpu_name= cpu_name.get("brand_raw")
+            cpu_freq= cpu_name.get("hz_advertised")[0]
+            cpu_max_freq= cpu_name.get("hz_advertised")
+            l3_cache_size= cpu_name.get("l3_cache_size")
+            ram_installed= ram_info[0]
+            ram_available= ram_info[0]
+
 
 
         import socket
