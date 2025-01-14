@@ -53,6 +53,8 @@ class InfollamaUser:
         return f"User: {self.user_name}, Type: {self.user_type}"
     def to_dict(self):
         return {"user_type": self.user_type, "user_name": self.user_name, "token": self.token}
+    def to_dict_no_token(self):
+        return {"user_type": self.user_type, "user_name": self.user_name, "token": "***"}
 
 
 class InfollamaAccess:
@@ -70,12 +72,14 @@ class InfollamaPing:
     def __init__(self, ping: bool, user: InfollamaUser):
         self.ping=ping
         self.user=user
+        self.ollama_version=""
     def __str__(self):
         return f"Ping status: {self.ping}, User: {self.user}"
-    def to_dict(self):
+    def to_dict(self):        
         return {
             'ping': self.ping,
-            'user': self.user.to_dict()
+            'ollama_version': self.ollama_version,
+            'user': self.user.to_dict_no_token()
         }
 
 class InfollamaProxy:
@@ -84,7 +88,7 @@ class InfollamaProxy:
         if (base_url.startswith("http://") or base_url.startswith("https://")):
             self.base_url = base_url
         else:
-            self.base_url = "http://" + base_url            
+            self.base_url = "http://" + base_url
         self.ollama_base_url=base_url
         self.host=host
         self.port=port
@@ -391,10 +395,11 @@ if __name__ == "__main__":
         user=proxy.get_user(proxy.get_token(request.headers))
         ping=InfollamaPing(False, user)
 
-        try:            
+        try:
             response = proxy.get("api/tags", request.headers)
             if response:
                 ping.ping=True
+                ping.ollama_version=proxy.ollama_version
                 return ping.to_dict()
             else:
                 return ping.to_dict()
@@ -405,7 +410,7 @@ if __name__ == "__main__":
     def info_device():
         """ Get device information only to authorized users """
         if proxy.check_user_access(request.headers, "info/device").is_authorised:
-            device.get_device_info()
+            proxy.device=device.get_device_info()
             return proxy.device
         else:
             return abort(403)

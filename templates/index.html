@@ -229,6 +229,11 @@
       }
 
       function getDevice() {
+        if (!proxy.validToken) { /* Return resolved if not logged in */
+          return new Promise((resolve, reject) => {
+            resolve({ended: true})
+          });
+        }
         return new Promise((resolve, reject) => {
           var token = getCookie("proxy-token");
           if (token) {
@@ -257,6 +262,11 @@
       }
 
       function getPS() {
+        if (!proxy.validToken) { /* Return resolved if not logged in */
+          return new Promise((resolve, reject) => {
+            resolve({ended: true})
+          });
+        }
         return new Promise((resolve, reject) => {
           var token = getCookie("proxy-token");
           if (token) {
@@ -284,6 +294,29 @@
         });
       }
 
+      function getVersion() {
+        var token = getCookie("proxy-token");
+        return new Promise((resolve, reject) => {
+
+           fetch("/api/version", {
+              method: "GET",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: "Bearer " + token,
+              },
+            })
+              .then((response) => response.json())
+              .then((data) => {
+                proxy.ollama_version = data.version;
+                resolve(data);
+              })
+              .catch((error) => {
+                console.error("Error on getVersion():", error);
+                reject(error);
+              });
+        });
+      }
+
       function getModels() {
         return new Promise((resolve, reject) => {
           var token = getCookie("proxy-token");
@@ -308,7 +341,6 @@
               console.error("Error on getModels():", error);
               reject(error);
             });
-
         });
       }
       function formatBytes(bytes, decimals = 1, force="GB") {
@@ -324,6 +356,25 @@
         return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
       }
 
+      /* Returns the difference between two dates in days or weeks or months */
+      function getDeltaTime(date) {
+        if (typeof date==="string") {
+          date=new Date(date);
+        }
+        const now = new Date();
+        const diff = now - date;
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const weeks = Math.floor(days / 7);
+        const months = Math.floor(days / 30);
+        const years = Math.floor(days / 365);
+        if (years > 0) return `${years} year${years > 1 ? "s" : ""}`;
+        else if (months > 0) return `${months} month${months > 1 ? "s" : ""}`;
+        else if (weeks > 0) return `${weeks} week${weeks > 1 ? "s" : ""}`;
+        else if (days > 0) return `${days} day${days > 1 ? "s" : ""}`;
+        else return "today"
+        
+      }
+
       /* Display the available models on the card table-available-models */
       function displayModels() {
         /* Check if proxy.models has changed and need a display update */
@@ -337,19 +388,20 @@
           html="<thead><tr><th>No available Model</th></tr></thead>"
         } else {          
           let size=0
-          html+="<thead><tr><th class='sortable'>Name</th><th class='text-end sortable'>File Size</th><th class='text-end sortable'>Parameters</th><th class='text-end sortable'>Family</th><th class='text-end sortable'>Quantization</th></tr></thead>"
+          html+="<thead><tr><th class='sortable'>Name</th><th class='text-end sortable'>File Size</th><th class='text-end sortable'>Params</th><th class='text-end sortable'>Family</th><th class='text-end sortable'>Quantization</th><th class='text-end sortable'>Installed</th></tr></thead>"
           html+="<tbody>"
           for(let i=0;i<proxy.models.length;i++){
             pill1=`<span class="badge bg-info rounded-pill">${sanitizeHTML(proxy.models[i].details.family)}</span>`;
             pill2=`<span class="badge bg-secondary rounded-pill">${sanitizeHTML(proxy.models[i].details.parameter_size)}</span>`;
             pill3=`<span class="badge bg-secondary rounded-pill">${sanitizeHTML(proxy.models[i].details.quantization_level)}</span>`;
+            installed=getDeltaTime(proxy.models[i].modified_at)
             size+=proxy.models[i].size;
-            html+="<tr data-digest='"+sanitizeHTML(proxy.models[i].digest)+"'><td>"+sanitizeHTML(proxy.models[i].name)+"</td><td class='text-end' data-sort='"+sanitizeHTML(proxy.models[i].size)+"'>"+formatBytes(proxy.models[i].size)+"</td><td class='text-end'>"+pill2+"</td><td class='text-end'>"+pill1+"</td><td class='text-end' data-sort='"+sanitizeHTML(proxy.models[i].details.quantization_level.replace(/([QF])/g,""))+"'>"+pill3+"</td></tr>";
+            html+="<tr data-digest='"+sanitizeHTML(proxy.models[i].digest)+"'><td>"+sanitizeHTML(proxy.models[i].name)+"</td><td class='text-end' data-sort='"+sanitizeHTML(proxy.models[i].size)+"'>"+formatBytes(proxy.models[i].size)+"</td><td class='text-end'>"+pill2+"</td><td class='text-end'>"+pill1+"</td><td class='text-end' data-sort='"+sanitizeHTML(proxy.models[i].details.quantization_level.replace(/([QF])/g,""))+"'>"+pill3+"</td><td class='text-end' data-sort='"+sanitizeHTML(proxy.models[i].modified_at)+"'>"+installed+"</td></tr>";
           }
         title=`${proxy.models.length} model${proxy.models.length>1?"s":""} available using ${formatBytes(size)} on disk`;
           html+="</tbody>"
         }
-        titleElement.innerHTML=title;
+        titleElement.innerHTML=title; 
         tableElement.innerHTML=html;
         displayPS(); /* Force to refresh the tr highlight on running models */
         makeTableSortable();        
@@ -376,9 +428,6 @@
         <b>OS Version:</b> ${sanitizeHTML(device.os_name)}<br>
 
         <b>GPU:</b> ${sanitizeHTML(device.gpus)}<br>
-
-
-        
         `
         deviceElement.innerHTML=html
       }
@@ -471,7 +520,12 @@
                 const bytesB = convertValueEndsWithBOrM(valB);
                 return bytesA - bytesB;
               } else {
-                  return numA - numB;
+                  if (valA==numA.toString() && valB==numB.toString()) {
+                    /* Real numbers */
+                    return numA - numB;
+                  } else {
+                    return valA.toString().localeCompare(valB);
+                  }
               }
             }
 
@@ -491,7 +545,7 @@
 
       /* Check if the token is valid by a call to the proxy server. If valid, store to cookie and start */
       function send_token(token) {
-        document.getElementById("div-check-token").innerHTML;
+        console.log("send_token("+token+")")
         var checked = false;
         if (token != "") {
           if (token.length > 10) {
@@ -510,6 +564,8 @@
           .then((data) => {
             if (data.ping == true) {
               proxy.lastPingSuccess = new Date();
+              console.log("ping call success")
+              console.log(data)
               if (data.user.user_type == "anonymous") {
                 proxy.validToken=false;
                 showAlert("alert-error")
@@ -518,7 +574,7 @@
                 setCookie("proxy-token", token, 100);
                 showAlert("alert-success")
                 proxy.validToken=true;
-                startUI();
+                startUIWhenLogin();
               }
             } else if (data.ping == false) {
               if (data.user.user_type == "anonymous") {
@@ -544,7 +600,7 @@
       function updateHeader() {
         if (proxy.validToken) {
           document.getElementById("header-user").innerHTML = `Welcome <b>${sanitizeHTML(proxy.ping.user.user_name)}</b><br>
-    <small class="text-muted">Type ${sanitizeHTML(proxy.ping.user.user_type)}</small>`;
+          <small class="text-muted">Type ${sanitizeHTML(proxy.ping.user.user_type)}</small>`;
           document.getElementById("btn-logout").classList.remove("d-none")
         } else {
           document.getElementById("header-user").innerText = "Please log in with token";
@@ -552,7 +608,7 @@
       }
 
       /* Launch the UI when a valid token is provided */
-      function startUI() {
+      function startUIWhenLogin() {
         updateHeader()
 
 
@@ -570,7 +626,7 @@
             displayDevice()
           })
           .catch((error) => {
-            console.error("Error on startUI() :", error);
+            console.error("Error on startUIWhenLogin() :", error);
             return false;
           });
       }
@@ -583,7 +639,6 @@
               displayPS();  
               displayModels()            
               displayDevice()
-
             })
             .catch((error) => {
               console.error("Error on heartBeat() :", error);
@@ -624,11 +679,29 @@
 
       /* Function that starts the proxy UI */
       function startProxyUI() {
-        /* First Ping to check connexion */
-        ping();
+        /* First Ping to check connexion to server and cookie to logged in*/
+        ping().then((response) => {
+          console.log("Connected to server");
+          // Check if a token is stored in the cookie
+          if (response.user.user_type!="anonymous") {
+            let token = getCookie("proxy-token");
+            if (token) {
+              send_token(token);
+            }
+          }
+        });
         /* Then start the heartBeat function */
-        heartBeat();        
+        heartBeat();     
+        /* Check if a token is stored in the cookie */
+        /*
+        let token=getCookie("proxy-token");
+        if (token){
+          send_token(token);
+        }
+        */
       }
+
+      /* Initial start */
       setTimeout(() => {
         startProxyUI();
       }, 100); // Start the proxy UI after 0.1 second
@@ -732,7 +805,7 @@
     <div class="container mt-4 d-none" id="div-ui">
       <div class="row g-4">
         <div class="col-md-4 p-0 px-2">
-          <div class="card mb-2">
+          <div class="card shadow mb-3">
             <div class="card-header">
               <h5 class="card-title mb-0" id="title-running-models">Running models</h5>
             </div>
@@ -744,7 +817,7 @@
             </div>
           </div>
 
-          <div class="card mt-2">
+          <div class="card shadow mt-3">
             <div class="card-header">
               <h5 class="card-title mb-0">Device hardware details</h5>
             </div>
@@ -754,10 +827,24 @@
               </div>
             </div>
           </div>          
+
+          <div class="card shadow mt-3">
+            <div class="card-header">
+              <h5 class="card-title mb-0">Quick help</h5>
+            </div>
+            <div class="card-body p-2 pt-0">
+              <div class="table-responsive"  id="card-help">
+                
+              </div>
+            </div>
+          </div>          
+
         </div>
 
+
+
         <div class="col-md-8 p-0 px-2">
-          <div class="card">
+          <div class="card shadow">
             <div class="card-header">
               <h5 class="card-title mb-0" id="title-available-models">Available models</h5>
             </div>
