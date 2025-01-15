@@ -428,7 +428,7 @@ function displayDevice() {
     html = `<b>Host Type:</b> Localhost<br>`;
   }
 
-  headerDeviceElement.innerHTML = html;
+  headerDeviceElement.innerHTML = "";
 }
 
 /* Display running model on the card */
@@ -592,9 +592,6 @@ function send_token(token) {
         } else {
           if (data.user.user_name == "openbar") {
             /* if proxy access is opened without token control */
-            //proxy.validToken = false;
-            console.log("promise ALL starting...");
-            console.log("proxy", proxy);
 
             Promise.all([getModels(), getPS(), getDevice()])
               .then((results) => {
@@ -604,14 +601,13 @@ function send_token(token) {
                 proxy.needModelDisplayUpdate = true;
                 displayModels();
                 displaySoft();
-                //updateHeader();
                 startUIWhenLogin();
+                showAlert("alert-openbar");
               })
               .catch((error) => {
                 console.log(error);
               });
           } else {
-            //proxy.validToken = false;
             setCookie("proxy-token", token, 100);
             showAlert("alert-success");
             startUIWhenLogin();
@@ -620,12 +616,10 @@ function send_token(token) {
       } else if (data.ping == false) {
         if (data.user.user_type == "anonymous") {
           showAlert("alert-error");
-          //proxy.validToken = false;
           return false;
         }
       } else {
         showAlert("alert-error");
-        //proxy.validToken = false;
         return false;
       }
     })
@@ -659,8 +653,6 @@ function updateHeader() {
 /* Launch the UI when a valid token is provided */
 function startUIWhenLogin() {
   console.log("startUIWhenLogin() starting");
-  updateHeader();
-
   document.getElementById("div-connect").style.display = "none";
   document.getElementById("div-ui").classList.remove("d-none");
 
@@ -672,6 +664,8 @@ function startUIWhenLogin() {
       displayModels();
       displayDevice();
       displaySoft();
+      updateHeader();
+      updateFlowContainer();
     })
     .catch((error) => {
       console.error("Error on startUIWhenLogin() :", error);
@@ -696,11 +690,13 @@ function heartBeat() {
   }, 10000); // Check every 10 seconds
 }
 
-function showAlert(name, message = "") {
+function showAlert(name, autoClose = 5000) {
   document.getElementById(name)?.classList.remove("d-none");
-  setTimeout(() => {
-    document.getElementById(name)?.classList.add("d-none");
-  }, 5000); // Hide the alert after 5 seconds
+  if (autoClose > 0) {
+    setTimeout(() => {
+      document.getElementById(name)?.classList.add("d-none");
+    }, autoClose); // Hide the alert after autoClose/1000 seconds
+  }
 }
 
 // Function to update tooltip title dynamically

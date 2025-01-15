@@ -18,30 +18,34 @@
       rel="stylesheet"
       href="{{ url_for('static', filename= 'css/infollama.css') }}"
     />
-
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename= 'css/flow.css') }}"
+    />
     <title>Infollama Proxy</title>
 
     <link rel="shortcut icon" href="/favicon.ico" />
 
     <script src="{{ url_for('static', filename= 'js/infollama.js') }}"></script>
+    <script src="{{ url_for('static', filename= 'js/flow.js') }}"></script>
 
     <script>
       window.addEventListener("load", (event) => {
         startProxyUI();
         // Initialize all tooltips
-        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipTriggerList = [].slice.call(
+          document.querySelectorAll('[data-bs-toggle="tooltip"]')
+        );
         var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-          return new bootstrap.Tooltip(tooltipTriggerEl)
-        })
+          return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
       });
-
     </script>
   </head>
   <body>
-
-
-
-    <nav class="navbar navbar-expand-lg navbar-light bg-light fixed-top p-0 shadow">
+    <nav
+      class="navbar navbar-expand-lg navbar-light bg-light fixed-top p-0 shadow"
+    >
       <div class="container-fluid">
         <a class="navbar-brand" href="#">
           <img
@@ -51,16 +55,18 @@
           />
         </a>
         <span class="me-auto" id="header-title">
-          Infollama Proxy<br><small>&nbsp;Release {{ release }}</small>
+          Infollama Proxy<br /><small>&nbsp;Release {{ release }}</small>
         </span>
-        <span class="me-auto" id="header-device">
-          
-        </span>
-          
-        <div class="d-flex align-items-center">
-          
-          <i class="bi bi-heart-pulse-fill ms-2 mx-2" id="icon-heart" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Server Status: Looking for connexion"></i>
+        <span class="me-auto" id="header-device"> </span>
 
+        <div class="d-flex align-items-center">
+          <i
+            class="bi bi-heart-pulse-fill ms-2 mx-2"
+            id="icon-heart"
+            data-bs-toggle="tooltip"
+            data-bs-placement="bottom"
+            title="Server Status: Looking for connexion"
+          ></i>
         </div>
         <div class="d-flex align-items-center">
           <span class="navbar-text mx-3" id="header-user"></span>
@@ -77,62 +83,94 @@
 
     <!-- Main Content -->
 
+    <div class="container mt-4 d-none" id="alert-success">
+      <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <strong>Success!</strong> Your token is valid and has been stored in a
+        cookie.
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="alert"
+          aria-label="Close"
+        ></button>
+      </div>
+    </div>
 
-  
+    <div class="container mt-4 d-none" id="alert-openbar">
+      <div class="alert alert-warning alert-dismissible fade show" role="alert">
+        <strong>Success!</strong> Infollama proxy is opened without token
+        authentification.
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="alert"
+          aria-label="Close"
+        ></button>
+      </div>
+    </div>
+
+    <div class="container mt-0 d-none" id="alert-flow">
+      <div class="alert alert-dismissible fade show" role="alert">
+        <div id="flowIsHere" class="mx-auto p-0 m-0"></div>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="alert"
+          aria-label="Hide the chart"
+        ></button>
+      </div>
+    </div>
 
     <div class="container m-4 content" id="div-connect">
-
-      <div class="container mt-4 d-none" id="alert-error">
-        <div class="alert alert-danger alert-dismissible fade show" role="alert" >
-          <strong>Invalid Token!</strong> Your token is not valid. Please log in again.
-          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-      </div>
-
-      <div class="container mt-4 d-none" id="alert-success">
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-          <strong>Success!</strong> Your token is valid and has been stored in a cookie.
-          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-      </div>
-      
       <div class="row">
         <div class="col-md-12">
-          <div class="card mx-auto mt-4 shadow" style="max-width: 500px;">
+          <div class="card mx-auto mt-4 shadow" style="max-width: 500px">
             <div class="card-header">
-              <h5 class="card-title mb-0"><i class="bi bi-key-fill"></i> Provide your token to access the web UI</h5>
+              <h5 class="card-title mb-0">
+                <i class="bi bi-key-fill"></i> Provide your token to access the
+                web UI
+              </h5>
             </div>
             <div class="card-body align-items-center pb-0">
-                <p>With a valid token, this web UI will display hardware informations about this device and Ollama details like models available, models running, available VRAM, ...</p>
-                <p>Tokens are defined in the <span class="file-name">user.conf</span> file of this application. By defaut, an admin token is defined as <span class="string">pro_12345678900000</span>. </p>
-                <p>Once provided, your token will be stored in the browser's local storage and will be used to automatically access the web UI.</p>
+              <p>
+                With a valid token, this web UI will display hardware
+                informations about this device and Ollama details like models
+                available, models running, available VRAM, ...
+              </p>
+              <p>
+                Tokens are defined in the
+                <span class="file-name">user.conf</span> file of this
+                application. By defaut, an admin token is defined as
+                <span class="string">pro_12345678900000</span>.
+              </p>
+              <p>
+                Once provided, your token will be stored in the browser's local
+                storage and will be used to automatically access the web UI.
+              </p>
             </div>
             <div class="card-body pt-0">
-                <div class="mb-3">
-                  <label for="token" class="form-label">Your Proxy Token:</label>
-                  <div class="input-group">
-                    <input
-                      type="text"
-                      id="token"
-                      name="token"
-                      value="pro_12345678900000"
-                      class="form-control"
-                      required
-                    />
-                    <button
-                      type="button"
-                      class="btn btn-primary"
-                      onclick="send_token(document.getElementById('token').value)"
-                    >
-                      <i class="bi bi-key-fill"></i> Send Token
-                    </button>
-                  </div>
+              <div class="mb-3">
+                <label for="token" class="form-label">Your Proxy Token:</label>
+                <div class="input-group">
+                  <input
+                    type="text"
+                    id="token"
+                    name="token"
+                    value="pro_12345678900000"
+                    class="form-control"
+                    required
+                  />
+                  <button
+                    type="button"
+                    class="btn btn-primary"
+                    onclick="send_token(document.getElementById('token').value)"
+                  >
+                    <i class="bi bi-key-fill"></i> Send Token
+                  </button>
                 </div>
+              </div>
             </div>
           </div>
-
-
-          
         </div>
       </div>
     </div>
@@ -142,12 +180,16 @@
         <div class="col-md-4 p-0 px-2">
           <div class="card shadow mb-3">
             <div class="card-header">
-              <h5 class="card-title mb-0" id="title-running-models">Running models</h5>
+              <h5 class="card-title mb-0" id="title-running-models">
+                Running models
+              </h5>
             </div>
             <div class="card-body p-2 pt-0">
               <div class="table-responsive">
-                <table class="table table-striped" id="table-running-models">                 
-                </table>
+                <table
+                  class="table table-striped"
+                  id="table-running-models"
+                ></table>
               </div>
             </div>
           </div>
@@ -157,76 +199,102 @@
               <h5 class="card-title mb-0">Software and network details</h5>
             </div>
             <div class="card-body p-2 pt-0">
-              <div class="table-responsive"  id="card-soft">
-                
-              </div>
+              <div class="table-responsive" id="card-soft"></div>
             </div>
-          </div>  
+          </div>
 
           <div class="card shadow mt-3">
             <div class="card-header">
               <h5 class="card-title mb-0">Device hardware details</h5>
             </div>
             <div class="card-body p-2 pt-0">
-              <div class="table-responsive"  id="card-device">
-                
-              </div>
+              <div class="table-responsive" id="card-device"></div>
             </div>
-          </div>          
+          </div>
 
           <div class="card shadow mt-3">
             <div class="card-header">
               <h5 class="card-title mb-0">Infollama Proxy Quick Help</h5>
             </div>
             <div class="card-body p-2 pt-0">
-              <div class="table-responsive"  id="card-help">
-                <p></p>This application is an Ollama proxy server providing acces to the Ollama server via authentification token. You can configure CORS policy, LAN and WAN access.</p>
-                <p>This application can also displays realtime informations in a convenient web UI, about hardware device details, VRAM usage, running models and avalaible models.</p>
-                <p>More informations on <a href="https://github.com/toutjavascript/infollama-proxy" target="_blank">the github repository page</a></p>
+              <div class="table-responsive" id="card-help">
+                <p>
+                  This application is an Ollama proxy server providing acces to
+                  the Ollama server via authentification token. You can
+                  configure CORS policy, LAN and WAN access.
+                </p>
+                <p>
+                  This application can also displays realtime informations in a
+                  convenient web UI, about hardware device details, VRAM usage,
+                  running models and avalaible models.
+                </p>
+                <p>
+                  More informations on
+                  <a
+                    href="https://github.com/toutjavascript/infollama-proxy"
+                    target="_blank"
+                    >the github repository page</a
+                  >
+                </p>
               </div>
             </div>
           </div>
         </div>
-
-
 
         <div class="col-md-8 p-0 px-2">
           <div class="card shadow">
             <div class="card-header">
-              <h5 class="card-title mb-0" id="title-available-models">Available models</h5>
+              <h5 class="card-title mb-0" id="title-available-models">
+                Available models
+              </h5>
             </div>
-            <div class="card-body  p-2 pt-0">
+            <div class="card-body p-2 pt-0">
               <div class="table-responsive">
-                <table class="table table-striped" id="table-available-models">
-                  
-                </table>
+                <table
+                  class="table table-striped"
+                  id="table-available-models"
+                ></table>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-
-
       <!-- Logout Confirmation Modal -->
-      <div class="modal fade" id="logoutModal" tabindex="-1" aria-labelledby="logoutModalLabel" aria-hidden="true">
+      <div
+        class="modal fade"
+        id="logoutModal"
+        tabindex="-1"
+        aria-labelledby="logoutModalLabel"
+        aria-hidden="true"
+      >
         <div class="modal-dialog">
           <div class="modal-content">
             <div class="modal-header">
               <h5 class="modal-title" id="logoutModalLabel">Confirm Logout</h5>
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+                aria-label="Close"
+              ></button>
             </div>
-            <div class="modal-body">
-              Are you sure you want to logout?
-            </div>
+            <div class="modal-body">Are you sure you want to logout?</div>
             <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-              <button type="button" class="btn btn-primary" id="confirmLogout">Logout</button>
+              <button
+                type="button"
+                class="btn btn-secondary"
+                data-bs-dismiss="modal"
+              >
+                Cancel
+              </button>
+              <button type="button" class="btn btn-primary" id="confirmLogout">
+                Logout
+              </button>
             </div>
           </div>
         </div>
       </div>
-
     </div>
 
     <!-- Footer -->
@@ -240,18 +308,20 @@
             <a href="#" target="_blank" class="text-decoration-none me-3"
               ><i class="bi bi-globe"></i> www.toutjavascript.com</a
             >
-            <a href="https://github.com/toutjavascript/infollama-proxy" target="_blank" class="text-decoration-none"><i class="bi bi-github"></i>  Github</a>
+            <a
+              href="https://github.com/toutjavascript/infollama-proxy"
+              target="_blank"
+              class="text-decoration-none"
+              ><i class="bi bi-github"></i> Github</a
+            >
           </div>
         </div>
       </div>
     </footer>
 
-
-
     <div id="div-check-token"></div>
     <div id="promise-result"></div>
     <div id="div-ui"></div>
     <div id="ping-result"></div>
-
   </body>
 </html>
