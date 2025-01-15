@@ -14,7 +14,7 @@ Very first pre alpha release shared to debug and test on various devices. Please
 - Run a proxy to access your Ollama API server, on localhost, LAN and WAN
 - Protect your Ollama server with one token by user or usage
 - Display usefull details about Ollama server (models, running models, size) and hardware device informations (CPU, GPUS, RAM and VRAM usage).
-- Log Ollama API calls in a log file (as an HTTP log file type) with different levels: NONE, ERROR_ONLY, INFO, and ALL, including the full JSON request
+- Log Ollama API calls in a log file (as an HTTP log file type) with different levels: NEVER, ERROR, INFO, and ALL, including the full JSON prompt request
 
 ## Requirements
 
@@ -85,7 +85,7 @@ Do not forget to provide a valid token, starting with `pro_`, defined in `users.
 
 ## Define tokens
 
-Token definitions ar set in the `users.conf` file. This text file lists the token line by line with this format:
+Token definitions ar set in the `users.conf` file. This text file lists the tokens line by line with this format:
 
 ```
 user_type:user_name:token
