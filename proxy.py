@@ -8,6 +8,7 @@ import os
 import json
 import argparse
 import multiprocessing
+import logging                      # Need to remove terminal flask log 
 from flask_cors import CORS
 import src.pytherminal as pytherminal
 import src.device    as device
@@ -89,17 +90,19 @@ class InfollamaPing:
         }
 
 class InfollamaConfig: 
-    def __init__(self, base_url, host, port, cors_policy, user_file, anonymous_access=False, log_level="ALL"):
+    def __init__(self, base_url, host, port, cors_policy, user_file, log_file, anonymous_access=False, log_level="ALL"):
         self.base_url=base_url
         self.host=host
         self.port=port
         self.cors_policy=cors_policy
         self.user_file=user_file
         self.log_level=log_level
+        self.log_file=log_file
+        self.log_size=device.get_file_size(log_file)
         self.anonymous_access=anonymous_access  
         self.lan_ip=lan.get_lan_ip()
     def __str__(self):
-        return f"Base URL: {self.base_url}, Host: {self.host}, Port: {self.port}, Cors Policy: {self.cors_policy}, User File: {self.user_file}, anonymous_access: {self.anonymous_access} Log Level: {self.log_level}, Lan IP: {self.lan_ip}"
+        return f"Base URL: {self.base_url}, Host: {self.host}, Port: {self.port}, Cors Policy: {self.cors_policy}, User File: {self.user_file}, anonymous_access: {self.anonymous_access} Log Level: {self.log_level}, Lan IP: {self.lan_ip}, log_file: {self.log_file}, log_size: {self.log_size}"
     def to_dict(self):        
         return {
             'base_url': self.base_url,
@@ -109,7 +112,9 @@ class InfollamaConfig:
             'user_file': self.user_file,
             'log_level': self.log_level,
             'lan_ip': self.lan_ip,
-            "anonymous_access": self.anonymous_access  
+            "anonymous_access": self.anonymous_access  ,
+            'log_file': self.log_file,
+            'log_size': self.log_size
         }
 
 class InfollamaProxy:
@@ -120,18 +125,15 @@ class InfollamaProxy:
         else:
             self.base_url = "http://" + base_url
         self.localhost="localhost"
-        self.config=InfollamaConfig(base_url, host, port, cors_policy, user_file, anonymous_access=anonymous_access, log_level=log_level)
+        self.config=InfollamaConfig(base_url, host, port, cors_policy, user_file, log_file, anonymous_access=anonymous_access, log_level=log_level)
         self.ollama_base_url=base_url
         self.host=host
         self.port=port
-        self.cors_policy=cors_policy
         self.server = Flask("infollama_proxy")
         self.ollama_version=None
         self.ollama_running=False
         self.env_vars=dict()
         self.user_file=user_file
-        self.log_level=log_level
-        self.log_file=log_file
         self.users=[]
         self.get_ollama_env_var()
         self.device=self.update_device_info()
@@ -166,22 +168,48 @@ class InfollamaProxy:
         """ Log an event to the console and the log_file file
             Use the log level to detect the severity of the event
         """
-        level=self.config.log_level
-        to_be_log=True
 
-        if to_be_log is False:
+        # Do not log if the event is level 0 (ex api/ps or api/tags if access is authenticated) to preserve size file
+        if log_level == 0:
            return   
+
+
+        config_level=self.config.log_level
+        # CONFIG LOG LEVEL can be: NEVER|ERROR|INFO|ALL
+        if config_level=="NEVER":
+            return
+
+        to_be_log=False
+        # Only log the event level > 5 on ERROR
+        if config_level=="ERROR":
+            if log_level>=5:
+                to_be_log=True
+
+        # Log each event if the event is level > 1 but without extra event text
+        if config_level=="INFO":
+            if log_level>=1:
+                to_be_log=True
+                event=""
         
+        # Log each event if the event is level > 1 but with extra event text (wich contains prompts if provided)
+        if config_level=="ALL":
+            if log_level>=1:
+                to_be_log=True
+        
+        if to_be_log is False:
+            return
+
         if url.startswith("/") is False:
             url="/"+url
         
         ip=self.get_user_ip()
-        #pytherminal.console(f"[d]Logged in {self.log_file}[/d]  {ip}  {event}")
+
+
         try:
-            with open(self.log_file, "a") as log_file:
+            with open(self.config.log_file, "a") as log_file:
                 http_version="HTTP/1.1"                
                 current_date = datetime.now().strftime("%d/%b/%Y:%H:%M:%S")
-                log_file.write(f"{ip} - {user} [{current_date}] \"{method} {url} {http_version}\" {http_status}\t{event}\n")
+                log_file.write(f"{ip} - {user} [{current_date}] \"{method} {url} {http_version}\" {http_status}\t{event}".strip()+"\n")
         except Exception as e:
             print(f"Error logging event: {e}")
         
@@ -211,6 +239,8 @@ class InfollamaProxy:
 
     def get_user(self, token: str) -> InfollamaUser:
         """Return an InfollamaUser object based on the token"""
+        if self.config.anonymous_access is True:
+            return InfollamaUser("administrator", "openbar", "")
         if (token is None): 
             return InfollamaUser("anonymous", "anonymous", "")
         for user in self.users:
@@ -220,6 +250,8 @@ class InfollamaProxy:
     
     def get_token(self, headers = None) -> str:
         """Return the token passed in Bearer Authorization header or return None if not found"""
+        if self.config.anonymous_access is True:
+            return None                
         if headers is None:
             return None
         auth_header = headers.get('Authorization')
@@ -229,6 +261,9 @@ class InfollamaProxy:
 
     def check_user_access(self, headers: str, endpoint: str) -> InfollamaAccess:
         """Check if the token is associated to a user who has access to the specified endpoint"""
+        if self.config.anonymous_access is True:
+            return InfollamaAccess(self.get_user("").user_name, True, "No access control defined by config. Returns openbar user")
+
         token=self.get_token(headers)
         user=self.get_user(token)
         # Check wich endpoints are allowed for the user type
@@ -288,7 +323,7 @@ class InfollamaProxy:
             return abort(403)
 
         if endpoint=="api/ps" or endpoint=="api/tags" or endpoint=="v1/models":
-            # if access is authorized and the endpoint are not sensible, log_level is minimal
+            # if access is authorized and the endpoint are not sensible, log_level is 0 and no log is stored
             log_level=0
         self.log_event(access.user_name, "GET", endpoint, 200, log_level=log_level)
 
@@ -310,9 +345,6 @@ class InfollamaProxy:
             self.log_event(access.user_name, "POST", endpoint, 403, log_level=9)
             return abort(403)
   
-        if True:
-            True
-
         url = self.create_url(endpoint)     
         try:
             response = requests.post(url, json=data, params=kwargs)
@@ -431,8 +463,8 @@ if __name__ == "__main__":
     
     appPath=utils.getAppPath()
     # Prevent http flask web server logging in terminal 
-    #log = logging.getLogger('werkzeug')
-    #log.disabled = True
+    log = logging.getLogger('werkzeug')
+    log.disabled = True
     
     if proxy.ollama_running:
         pytherminal.console(f"[ok]Proxy server is listening your LLM API Calls @[url]{proxy.localhost}:{proxy.port}[/url][/ok]", False)
@@ -441,7 +473,11 @@ if __name__ == "__main__":
         pytherminal.console(f"[error]Proxy server is running on port @ [url]{proxy.localhost}:{proxy.port}[/url] but Ollama not found[/error]", False)
 
     if proxy.config.host=="0.0.0.0":
-        pytherminal.console(f"[warning]Be aware that this proxy server is accessible on your Local Area Network  @[url]{proxy.config.lan_ip}:{proxy.port}[/url][/warning]", False)
+        pytherminal.console(f"   [warning]Be aware that this proxy server is accessible on your Local Area Network  @[url]{proxy.config.lan_ip}:{proxy.port}[/url][/warning]", False)
+
+    if proxy.config.anonymous_access is True:
+        pytherminal.console(f"   [error]Be carefull: this proxy server is openbar because you launch it with --anonym param. No token needed ![/error]", False)
+
 
     # Define the proxy server routes
     @proxy.server.route('/info')
@@ -535,6 +571,5 @@ if __name__ == "__main__":
 
 
     # Starting the Flask proxy server with the specified host and port
-    proxy.log_event(event="Proxy server starting on", log_level=9)
-    proxy.server.run(host=tjs_host, port=tjs_port)
-
+    proxy.log_event(event=f"Proxy server starting on {args.host}:{args.port}", log_level=5)
+    proxy.server.run(host=args.host, port=tjs_port)

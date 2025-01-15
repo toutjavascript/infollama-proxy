@@ -6,7 +6,7 @@ const user = {
 };
 const proxy = {
   models: [],
-  needModelDisplayUpdate: false,
+  needModelDisplayUpdate: true,
   ps: [],
   device: {},
   ping: {},
@@ -114,13 +114,15 @@ function ping(token = "") {
 function getDevice() {
   if (!proxy.validToken) {
     /* Return resolved if not logged in */
+    /*
     return new Promise((resolve, reject) => {
-      resolve({ ended: true });
+       resolve({ ended: true });
     });
+    */
   }
   return new Promise((resolve, reject) => {
     var token = getCookie("proxy-token");
-    if (token) {
+    if (true) {
       fetch("/info/device", {
         method: "GET",
         headers: {
@@ -138,8 +140,8 @@ function getDevice() {
           reject(error);
         });
     } else {
-      const message = "Please give a valid token to see the UI.";
-      document.getElementById("promise-result").innerHTML = message;
+      //const message = "Please give a valid token to see the UI.";
+      //document.getElementById("promise-result").innerHTML = message;
       reject(message);
     }
   });
@@ -148,13 +150,13 @@ function getDevice() {
 function getPS() {
   if (!proxy.validToken) {
     /* Return resolved if not logged in */
-    return new Promise((resolve, reject) => {
-      resolve({ ended: true });
-    });
+    //return new Promise((resolve, reject) => {
+    //resolve({ ended: true });
+    //});
   }
   return new Promise((resolve, reject) => {
     var token = getCookie("proxy-token");
-    if (token) {
+    if (true) {
       fetch("/info/ps", {
         method: "GET",
         headers: {
@@ -215,10 +217,10 @@ function getModels() {
       .then((data) => {
         if (JSON.stringify(proxy.models) != JSON.stringify(data.models)) {
           proxy.needModelDisplayUpdate = true;
-          proxy.models = data.models;
         } else {
           proxy.needModelDisplayUpdate = false;
         }
+        proxy.models = data.models;
         resolve(data);
       })
       .catch((error) => {
@@ -375,20 +377,22 @@ function displayDevice() {
   );
   let gpus = "",
     discrete_gpus = "";
-  for (i = 0; i < device.gpus.length; i++) {
-    if (device.gpus[i].memoryTotal == 0) {
-      gpus = "not found";
-      break;
-    }
+  if (device.gpus) {
+    for (i = 0; i < device.gpus.length; i++) {
+      if (device.gpus[i].memoryTotal == 0) {
+        gpus = "not found";
+        break;
+      }
 
-    let num = "";
-    if (device.gpus.length > 1) {
-      num = `#${i + 1} `;
+      let num = "";
+      if (device.gpus.length > 1) {
+        num = `#${i + 1} `;
+      }
+      let vram = formatBytes(device.gpus[i].memoryTotal, 0);
+      gpus += `<div>${num}${sanitizeHTML(
+        device.gpus[i].name + " " + vram
+      )}</div>`;
     }
-    let vram = formatBytes(device.gpus[i].memoryTotal, 0);
-    gpus += `<div>${num}${sanitizeHTML(
-      device.gpus[i].name + " " + vram
-    )}</div>`;
   }
   discrete_gpus =
     gpus != ""
@@ -558,18 +562,18 @@ function getCellValue(row, index) {
   return cell.attr("data-sort") || cell.text();
 }
 
-/* Check if the token is valid by a call to the proxy server. If valid, store to cookie and start */
+/* Check if the token is valid by a call to the proxy server. If valid, store to cookie and start web ui */
 function send_token(token) {
   console.log("send_token(" + token + ")");
-  var checked = false;
+  var token_checked = false;
   if (token != "") {
     if (token.length > 10) {
       if (token.substring(0, 4) == "pro_") {
-        checked = true;
+        token_checked = true;
       }
     }
   }
-  if (!checked) {
+  if (!token_checked) {
     document.getElementById("div-check-token").innerHTML =
       "<span class='error'>Token is not well formatted. It must start with 'pro_' and be at least 10 characters long.</span>";
     return false;
@@ -580,26 +584,48 @@ function send_token(token) {
       if (data.ping == true) {
         proxy.lastPingSuccess = new Date();
         console.log("ping call success");
-        console.log(data);
+        console.log("ping=", data);
         if (data.user.user_type == "anonymous") {
-          proxy.validToken = false;
+          //proxy.validToken = false;
           showAlert("alert-error");
           return false;
         } else {
-          setCookie("proxy-token", token, 100);
-          showAlert("alert-success");
-          proxy.validToken = true;
-          startUIWhenLogin();
+          if (data.user.user_name == "openbar") {
+            /* if proxy access is opened without token control */
+            //proxy.validToken = false;
+            console.log("promise ALL starting...");
+            console.log("proxy", proxy);
+
+            Promise.all([getModels(), getPS(), getDevice()])
+              .then((results) => {
+                console.log("results", results);
+                displayPS();
+                displayDevice();
+                proxy.needModelDisplayUpdate = true;
+                displayModels();
+                displaySoft();
+                //updateHeader();
+                startUIWhenLogin();
+              })
+              .catch((error) => {
+                console.log(error);
+              });
+          } else {
+            //proxy.validToken = false;
+            setCookie("proxy-token", token, 100);
+            showAlert("alert-success");
+            startUIWhenLogin();
+          }
         }
       } else if (data.ping == false) {
         if (data.user.user_type == "anonymous") {
           showAlert("alert-error");
-          proxy.validToken = false;
+          //proxy.validToken = false;
           return false;
         }
       } else {
         showAlert("alert-error");
-        proxy.validToken = false;
+        //proxy.validToken = false;
         return false;
       }
     })
@@ -612,14 +638,18 @@ function send_token(token) {
 
 /* Update the header with user information */
 function updateHeader() {
-  if (proxy.validToken) {
+  if (proxy?.ping?.user && proxy?.ping?.user?.user_name != "anonymous") {
     document.getElementById(
       "header-user"
     ).innerHTML = `Welcome <b>${sanitizeHTML(proxy.ping.user.user_name)}</b><br>
       <small class="text-muted">Type ${sanitizeHTML(
         proxy.ping.user.user_type
       )}</small>`;
-    document.getElementById("btn-logout").classList.remove("d-none");
+    if (proxy?.ping?.user.user_name == "openbar") {
+      document.getElementById("btn-logout").classList.add("d-none");
+    } else {
+      document.getElementById("btn-logout").classList.remove("d-none");
+    }
   } else {
     document.getElementById("header-user").innerText =
       "Please log in with token";
@@ -628,11 +658,10 @@ function updateHeader() {
 
 /* Launch the UI when a valid token is provided */
 function startUIWhenLogin() {
+  console.log("startUIWhenLogin() starting");
   updateHeader();
 
-  setTimeout(() => {
-    document.getElementById("div-connect").style.display = "none";
-  }, 10);
+  document.getElementById("div-connect").style.display = "none";
   document.getElementById("div-ui").classList.remove("d-none");
 
   Promise.all([getModels(), getPS(), getDevice()])
@@ -669,11 +698,6 @@ function heartBeat() {
 
 function showAlert(name, message = "") {
   document.getElementById(name)?.classList.remove("d-none");
-  // document.getElementById(name)?.innerHTML = message;
-  autoHideAlert(name);
-}
-
-function autoHideAlert(name) {
   setTimeout(() => {
     document.getElementById(name)?.classList.add("d-none");
   }, 5000); // Hide the alert after 5 seconds
@@ -701,6 +725,13 @@ function startProxyUI() {
   ping().then((response) => {
     // Check if a token is stored in the cookie
     if (response.user.user_type != "anonymous") {
+      if (proxy.ping.config.anonymous_access === true) {
+        /* If openbar on proxy is enabled */
+        console.log(
+          "Openbar is enabled on proxy, user_name=" + proxy.ping.user.user_name
+        );
+        send_token("pro_token_openbar");
+      }
       let token = getCookie("proxy-token");
       if (token) {
         send_token(token);

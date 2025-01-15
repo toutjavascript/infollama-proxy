@@ -3,7 +3,17 @@ import cpuinfo
 import traceback
 import timeit
 import platform
+import os
 from src import utils
+
+# Get the size of the file
+def get_file_size(file_path):
+    try:
+        return os.path.getsize(file_path)
+    except Exception as e:
+        print(f"Error getting file size: {e}")
+        traceback.print_exc()
+        return None
 
 
 # Get hardware informations about the device (CPU, RAM, GPU)
@@ -29,7 +39,7 @@ def get_device_info():
                     } 
                     for gpu in gpus]
     except:
-        gpu_info = []
+        gpu_info = None
 
     end_time = timeit.default_timer()
     #print(f"Execution time GPUtil.getGPUs(): {end_time - start_time} seconds")
@@ -156,7 +166,7 @@ def get_device_info():
 
             device["description"] = f"""CPU: {device.get("cpu_name")}""" 
 
-        if len(device.get("gpus")) == 0:
+        if gpu_info is None:
             device["description"] = f" No GPU found"
         else:
             gpu=device.get("gpus")[0]

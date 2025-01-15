@@ -1,6 +1,4 @@
-# Method 1: Using socket
 import socket
-
 def get_lan_ip():
     """ Return the LAN ip address of the machine. """
     try:

@@ -1,26 +1,24 @@
-# InfoLlama Proxy
+# Infollama Proxy
 
-InfoLlama is a Python script that manage a proxy to Ollama.
-
-InfoLlama also retrieves and displays usefull details about Ollama server (models, running models, size, ram usage, ...) and some hardware informations.
+Infollama is a Python script that manages a token protection proxy for Ollama.
+Infollama also retrieves and displays usefull details about Ollama server (models, running models, size, ram usage, ...) and hardware informations, especially RAM and VRAM.
 
 ## WARNING
 
-Very first pre alpha release shared to debug and test on various devices.
-
-Please report any issues or bugs you encounter during testing.
+Very first pre alpha release shared to debug and test on various devices. Please report any issues or bugs you encounter during testing. You can share your ideas and needs.
 
 ## Features
 
-- Run a proxy protected with tokens to access to Ollama server API, on localhost, LAN and WAN
-- Retrieve and display the list of runinng and avaiable models from Ollama server.
-- Display usefull details about Ollama server (models, running models, size, ram usage, ...) and some hardware informations.
+- Run a proxy to access your Ollama API server, on localhost, LAN and WAN
+- Protect your Ollama server with one token by user or usage
+- Display usefull details about Ollama server (models, running models, size) and hardware device informations (CPU, GPUS, RAM and VRAM usage).
+- Log Ollama API calls in a log file (as an HTTP log file type) with different levels: NONE, ERROR_ONLY, INFO, and ALL, including the full JSON request
 
 ## Requirements
 
 - Python 3.11 or higher
 - Ollama server running on your local machine
-- Tested on Windows 10/11, macOS with Mx Silicon Chip
+- Tested on Windows 10/11, macOS with Mx Silicon Chip (need to be tested on Linux)
 
 ## Installation
 
@@ -51,4 +49,60 @@ Run the script with the following command:
 python proxy.py
 ```
 
-Open the browser and navigate to `http://localhost:11430/info` to access the InfoLlama Proxy web UI and start API calls.
+Open the browser and navigate to `http://localhost:11430/info` to access the Infollama Proxy web UI and start API calls.
+
+You can modify launch configuration with theses parameters:
+
+```
+usage: proxy.py [-h] [--base_url BASE_URL] [--host HOST] [--port PORT] [--cors CORS] [--anonym ANONYM] [--log LOG]
+  --base_url BASE_URL  The base_url of localhost Ollama server (default: http://localhost:11434)
+  --host     HOST      The host name for the proxy server (default: 0.0.0.0)
+  --port     PORT      The port for the proxy server (default: 11430)
+  --cors     CORS      The cors policy for the proxy server (default: *)
+  --anonym   ANONYM    Authorize the proxy server to be accessed anonymously without token (default: False)
+  --log      LOG       Define the log level that is stored in proxy.log (default: ALL, Could be NEVER|ERROR|INFO|ALL)
+```
+
+## Update
+
+This repository is under heavy construction. To update the source code from github, open a terminal in the `infollama-proxy` folder and launch a pull request:
+
+```sh
+git pull
+```
+
+## API Calls
+
+You can now use the proxy to chat with your Ollama server. You must modify default port configuration. Proxy port is `11430`:
+
+- base_url is now http://localhost:11430
+
+Do not forget to provide a valid token, starting with `pro_`, defined in `users.conf` file:
+
+- api_key = "pro_xxxxxxxxxxxxxx"
+
+## Define tokens
+
+Token definitions ar set in the `users.conf` file. This text file lists the token line by line with this format:
+
+```
+user_type:user_name:token
+```
+
+`user_type` can be `user` or `admin`. An `admin` user can access more APIs (like, pull, delete, copy, ...) and can view the full log file in the web UI.
+`user_name` is a simple string of text
+`token` is a string that needs to starts with `pro_`
+Parameters are separated with `:`
+
+If `--anonym` parameter is set to something at starts, the `users.conf` is ignored and all the accesses are authorised. User name is set to `openbar`.
+
+## Logging events
+
+You can log every prompt that are sent to server. Note that response are not logged to preserve privacy and disk size. This proxy app has several levels of logging:
+
+- `NEVER`: No logs at all.
+- `ERROR`: Log only error and not authorised requests.
+- `INFO`: Log every avery access, **excluding prompts**
+- `ALL`: Log every event, **including prompts**
+
+By default, the level is set to `ALL`.
