@@ -14,7 +14,7 @@ import src.device    as device
 import src.utils     as utils
 import src.lan       as lan
 from rich.pretty import pprint
-import datetime
+from datetime import datetime, timezone, timedelta
 from typing import Optional
 
 from flask import Flask, render_template, request, send_from_directory, Response, stream_with_context, abort
@@ -162,14 +162,26 @@ class InfollamaProxy:
         # Implement logic to retrieve device information
         return device.get_device_info()
     
-    def log_event(self, event, log_level=0) -> None:
-        """Log an event to the console and the log_file file"""
+    def log_event(self, user="internal", method="GET", url="", http_status=200, log_level=0, event="") -> None:
+        """ Log an event to the console and the log_file file
+            Use the log level to detect the severity of the event
+        """
+        level=self.config.log_level
+        to_be_log=True
+
+        if to_be_log is False:
+           return   
+        
+        if url.startswith("/") is False:
+            url="/"+url
+        
         ip=self.get_user_ip()
-        pytherminal.console(f"[d]Logged in {self.log_file}[/d]  {ip}  {event}")
+        #pytherminal.console(f"[d]Logged in {self.log_file}[/d]  {ip}  {event}")
         try:
             with open(self.log_file, "a") as log_file:
-                now=datetime.datetime.now()
-                log_file.write(f"{now}  {ip}  {event}\n")
+                http_version="HTTP/1.1"                
+                current_date = datetime.now().strftime("%d/%b/%Y:%H:%M:%S")
+                log_file.write(f"{ip} - {user} [{current_date}] \"{method} {url} {http_version}\" {http_status}\t{event}\n")
         except Exception as e:
             print(f"Error logging event: {e}")
         
@@ -253,6 +265,7 @@ class InfollamaProxy:
 
     def get_ollama_env_var(self) -> None:
         """Get the Ollama environment variables from the system"""
+        return None
         try:
             self.env_vars.clear()
             for key in ["OLLAMA_HOST", "OLLAMA_MODELS" ,"OLLAMA_MAX_LOADED_MODELS", "OLLAMA_NUM_PARALLEL", "OLLAMA_MAX_QUEUE", "OLLAMA_FLASH_ATTENTION", "OLLAMA_KV_CACHE_TYPE"]:
@@ -270,11 +283,14 @@ class InfollamaProxy:
         """Send a GET request to the Ollama API if the token access to endpoint is validated"""
         access=self.check_user_access(headers, endpoint)
         if access.is_authorised is False:
-            self.log_event(f"Rejected GET request by {access.user_name} for {endpoint}", log_level=9)
+            self.log_event(access.user_name, "GET", endpoint, 403, log_level=9)
             # return a status code 403 to flask server
             return abort(403)
 
-        self.log_event(f"Accepted GET request by {access.user_name} for {endpoint}", log_level=1)
+        if endpoint=="api/ps" or endpoint=="api/tags" or endpoint=="v1/models":
+            # if access is authorized and the endpoint are not sensible, log_level is minimal
+            log_level=0
+        self.log_event(access.user_name, "GET", endpoint, 200, log_level=log_level)
 
         url = self.create_url(endpoint)
         try:
@@ -288,15 +304,19 @@ class InfollamaProxy:
             return abort(500)
     
     def post(self, endpoint, headers, data=None, **kwargs):
+        """Transmit a POST call"""
         access=self.check_user_access(headers, endpoint)
         if access.is_authorised is False:
-            self.log_event(f"Rejected POST request by {access.user_name} for {endpoint}", log_level=9)
-            return False
-        self.log_event(f"Accepted POST request by {access.user_name} for {endpoint}", log_level=1)
+            self.log_event(access.user_name, "POST", endpoint, 403, log_level=9)
+            return abort(403)
+  
+        if True:
+            True
 
         url = self.create_url(endpoint)     
         try:
             response = requests.post(url, json=data, params=kwargs)
+            self.log_event(access.user_name, "POST", endpoint, 200, log_level=1, event=request.json.__str__())
             if (utils.is_json(response.text)):
                 return response.json()      
             else:
@@ -306,11 +326,12 @@ class InfollamaProxy:
             abort(500)
     
     def stream(self, endpoint, headers, data=None, **kwargs):
+        """Transmit and listen to a stream"""
         access=self.check_user_access(headers, endpoint)
         if access.is_authorised is False:
-            self.log_event(f"Rejected POST streamed request by {access.user_name} for {endpoint}", log_level=9)
-            return False
-        self.log_event(f"Accepted POST streamed request by {access.user_name} for {endpoint}", log_level=1)
+            self.log_event(access.user_name, "STREAM", endpoint, 403, log_level=9)
+            return abort(403)
+        self.log_event(access.user_name, "STREAM", endpoint, 200, log_level=1, event=request.json.__str__())
 
         url = self.create_url(endpoint)        
         return Response(stream_with_context(stream_request('POST', url, json=request.json, params=request.args)), content_type=request.headers.get('Content-Type'))
@@ -368,24 +389,28 @@ if __name__ == "__main__":
     tjs_host="0.0.0.0"                      # host of the proxy server (localhost or 127.0.0.1 to keep on the same machine, 0.0.0.0 to allow connections from any machine)
     tjs_port=11430                          # port of the proxy server
     cors_policy="*"                         # cors policy of the proxy server (* allows all origins, None fixes policy to same origin)
-    base_url="http://localhost:11434/"      # base url of the Ollama server
+    base_url="http://localhost:11434"       # base url of the Ollama server
     user_file="users.conf"                  # path to the user file containing credentials
-    log_level="INFO"                        # log level of the proxy server
+    log_level="ALL"                         # log level of the proxy server
     log_file="proxy.log"                    # path to the log file for the proxy server
     anonymous_access=False                  # Allows anonymous access to all API without providing token (default false)
     ##########################################################################################################################################
 
     # Reading the argument parameters
-    parser = argparse.ArgumentParser(description='Run a proxy filtered server to forward API requests to Ollama')
+    parser = argparse.ArgumentParser(description='Run a proxy filtered server to forward API requests to Ollama server defined by base_url.')
+    parser.add_argument('--base_url', type=str, default=base_url, help=f'The base_url of localhost Ollama server (default: {base_url})')
     parser.add_argument('--host', type=str, default=tjs_host, help=f'The host name for the proxy server (default: {tjs_host})')
     parser.add_argument('--port', type=str, default=tjs_port, help=f'The port for the proxy server (default: {tjs_port})')
+    parser.add_argument('--cors', type=str, default=cors_policy, help=f'The cors policy for the proxy server (default: {cors_policy})')
+    parser.add_argument('--anonym', type=bool, default=anonymous_access, help=f'Authorize the proxy server to be accessed anonymously without token (default: {anonymous_access})')
+    parser.add_argument('--log', type=str, default=log_level, help=f'Define the log level that is stored in {log_file} (default: {log_level}, Could be NEVER|ERROR|INFO|ALL)')
     args = parser.parse_args()
 
-    proxy = InfollamaProxy(base_url=base_url, host=tjs_host, port=tjs_port, cors_policy=cors_policy, user_file=user_file, log_level=log_level, log_file=log_file,  anonymous_access=anonymous_access )
+    proxy = InfollamaProxy(base_url=args.base_url, host=args.host, port=args.port, cors_policy=args.cors, user_file=user_file, log_level=args.log, log_file=log_file,  anonymous_access=args.anonym )
     #print("proxy after init()", proxy)
 
     # Display on terminal the state of application.
-    pytherminal.console("[reverse][h1]*******************    InfoOllama Proxy V "+OLLAMA_PROXY_RELEASE+" started    ******************[/h1][/reverse]", False)
+    pytherminal.console("[reverse][h1]*******************    Infollama Proxy V "+OLLAMA_PROXY_RELEASE+" started    ******************[/h1][/reverse]", False)
     pytherminal.console("  [ok]Thanx for using. Please report issues and ideas on[/ok]", False)
     pytherminal.console("  [url]https://github.com/toutjavascript/infollama-proxy[/url]", False) 
     proxy.print_versions()
@@ -410,11 +435,13 @@ if __name__ == "__main__":
     #log.disabled = True
     
     if proxy.ollama_running:
-        pytherminal.console(f"[ok]Ollama Localhost Proxy server is listening your LLM API Calls @[url]{proxy.localhost}:{proxy.port}[/url][/ok]", False)
+        pytherminal.console(f"[ok]Proxy server is listening your LLM API Calls @[url]{proxy.localhost}:{proxy.port}[/url][/ok]", False)
         pytherminal.console(f"[ok]Ollama and Host hardware informations are displayed in this web UI: [url]http://{proxy.localhost}:{proxy.port}/info[/url][/ok]", False)
     else:
-        pytherminal.console(f"[error]Ollama Localhost Proxy server is running on port @ [url]{proxy.localhost}:{proxy.port}[/url] but Ollama not found[/error]", False)
+        pytherminal.console(f"[error]Proxy server is running on port @ [url]{proxy.localhost}:{proxy.port}[/url] but Ollama not found[/error]", False)
 
+    if proxy.config.host=="0.0.0.0":
+        pytherminal.console(f"[warning]Be aware that this proxy server is accessible on your Local Area Network  @[url]{proxy.config.lan_ip}:{proxy.port}[/url][/warning]", False)
 
     # Define the proxy server routes
     @proxy.server.route('/info')
@@ -480,11 +507,15 @@ if __name__ == "__main__":
         elif request.method == 'POST':
             # A POST request will be forwarded to the ollama server and must be streamed if stream parameter is set
             if "stream" in request.json:
-                if request.json["stream"] is True:
+                if request.json["stream"] is not False:
                     url=proxy.create_url(path)
                     return proxy.stream(path, request.headers, **request.args)
+                else:
+                    return proxy.post(path, request.headers, **request.args)
             else:
-                return proxy.post(path, request.headers, **request.args)
+                #By default, the response will be returned as a stream
+                return proxy.stream(path, request.headers, **request.args)
+                
 
         elif request.method == 'OPTIONS':
             # Handle CORS preflight requests called by browsers on the frontend when cors origin must be checked
@@ -504,7 +535,6 @@ if __name__ == "__main__":
 
 
     # Starting the Flask proxy server with the specified host and port
-    proxy.log_event(" ", log_level=9)
-    proxy.log_event(f"Proxy server starting on {proxy.localhost}:{tjs_port}", log_level=9)
+    proxy.log_event(event="Proxy server starting on", log_level=9)
     proxy.server.run(host=tjs_host, port=tjs_port)
 

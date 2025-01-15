@@ -12,8 +12,8 @@ Please report any issues or bugs you encounter during testing.
 
 ## Features
 
-- Run a proxy with token that accesses to Ollama server API.
-- Retrieve and display a list of models from an Ollama server.
+- Run a proxy protected with tokens to access to Ollama server API, on localhost, LAN and WAN
+- Retrieve and display the list of runinng and avaiable models from Ollama server.
 - Display usefull details about Ollama server (models, running models, size, ram usage, ...) and some hardware informations.
 
 ## Requirements
@@ -51,4 +51,4 @@ Run the script with the following command:
 python proxy.py
 ```
 
-Open the browser and navigate to `http://localhost:11430/info` to access the InfoLlama Proxy web UI
+Open the browser and navigate to `http://localhost:11430/info` to access the InfoLlama Proxy web UI and start API calls.

@@ -16,6 +16,21 @@ const proxy = {
   validToken: false,
 };
 
+function getCurrentHostType() {
+  const host = window.location.hostname;
+  if (host == "localhost" || host == "127.0.0.1") {
+    return "LOCAL";
+  } else if (
+    host.startsWith("192.168.") ||
+    host.startsWith("10.0.") ||
+    host.startsWith("172.16.")
+  ) {
+    return "LAN";
+  } else {
+    return "WAN";
+  }
+}
+
 function sanitizeHTML(str) {
   var temp = document.createElement("div");
   temp.textContent = str;
@@ -397,6 +412,19 @@ function displayDevice() {
     ${discrete_gpus}
     `;
   deviceElement.innerHTML = html;
+
+  const headerDeviceElement = document.getElementById("header-device");
+  html = "";
+  const hostType = getCurrentHostType();
+  if (hostType == "LAN") {
+    html = `<b>Host Type:</b> LAN<br>`;
+  } else if (hostType == "WAN") {
+    html = `<b>Host Type:</b> WAN<br>`;
+  } else {
+    html = `<b>Host Type:</b> Localhost<br>`;
+  }
+
+  headerDeviceElement.innerHTML = html;
 }
 
 /* Display running model on the card */

@@ -102,7 +102,7 @@ def getPythonVersion():
     return sys.version
 
 def getOS():
-    os=platform.system()+" "+platform.release()
+    os=platform.system().strip()+" "+platform.release()
     release=platform.release()
     version=platform.version()
     build=version
@@ -110,10 +110,11 @@ def getOS():
         build=version[version.rfind(".")+1:]
         if (build>="22000"):
             release="11"
-    if platform.system()=="Darwin":
+    if platform.system().strip()=="Darwin":
         os="macOS"
         build=release
         release=""
+        return os
 
     return platform.system()+" "+release+" Build "+build
 
