@@ -8,6 +8,8 @@ Infollama also retrieves and displays usefull details about Ollama server (model
 Very first pre alpha release shared to debug and test on various devices. Please report any issues or bugs you encounter during testing. You can share your ideas and needs.
 
 ## Features
+![The Infollama Proxy web UI, with models running, models available and hardware details](https://github.com/user-attachments/assets/268dd860-691e-46eb-b236-7be858b195a9)
+
 
 - Run a proxy to access your Ollama API server, on localhost, LAN and WAN
 - Protect your Ollama server with one token by user or usage
