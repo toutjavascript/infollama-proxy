@@ -114,3 +114,12 @@ span.string {
   content: "↓";
   opacity: 1;
 }
+
+pre.pre-template {
+  font-size: 11px;
+}
+.btn-detail-model {
+  color: #fff;
+  font-size: 11px;
+  font-weight: bold;
+}

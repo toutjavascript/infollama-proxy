@@ -246,10 +246,76 @@ function displaySoft() {
   )}</div>
   <div class=""><b>LAN API access:</b> ${lanAccess}</div>
   <div class=""><b>WAN API access:</b> Work in progress with Ngrok</div>
-  
-  
   `;
   cardElement.innerHTML = html;
+}
+
+/* Display a modal box with model details */
+function showModelDetail(name, num_model) {
+  if (proxy.modelDetails[name]) {
+    const file_size = proxy.models[num_model].size;
+    const show = proxy.modelDetails[name];
+    const arch = show.model_info["general.architecture"];
+    const languages = show.model_info["general.languages"] || null;
+    const licence = show.model_info["general.license"] || null;
+    const context_length = show.model_info[arch + ".context_length"] || null;
+    console.log(show);
+    $("#show-model-name").html(`Detail configuration for <strong>${sanitizeHTML(
+      name
+    )}</strong><br>
+     <span class="badge bg-info rounded-pill">${show.details.family}</span>
+     <span class="badge bg-secondary rounded-pill mx-3">${
+       show.details.parameter_size
+     }</span>
+     <span class="badge bg-secondary rounded-pill">${
+       show.details.quantization_level
+     } </span>
+     <span class="mx-3">File size: ${formatBytes(file_size)}</span>
+
+      `);
+    let html = `
+      <div>
+      
+      
+      </div>
+      ${
+        languages
+          ? "<div><strong>Languages</strong>: " +
+            languages.join(", ") +
+            "</div>"
+          : ""
+      }
+      ${
+        context_length
+          ? "<div><strong>Default context length: </strong>: " +
+            Math.round(context_length / 1000) +
+            "k" +
+            "</div>"
+          : ""
+      }
+      <div><strong>Parameters: </strong>
+      ${
+        typeof show.parameters === "undefined"
+          ? "<small class='text-muted ml-4'>Not defined</small>"
+          : "<br><pre class='pre-template'>" +
+            sanitizeHTML(show.parameters) +
+            " </pre>"
+      }</div>      
+      <div><strong>System Prompt:</strong>
+      ${
+        typeof show.system === "undefined"
+          ? "<small class='text-muted ml-4'>Not defined</small>"
+          : "<br>" + sanitizeHTML(show.system)
+      }</div>
+      <div><strong>Template:</strong><pre class='pre-template'>${sanitizeHTML(
+        show.template
+      )}</pre></div>
+      ${licence ? "<div><strong>Licence: </strong>: " + licence + "</div>" : ""}
+    
+    `;
+    $("#show-model-body").html(html);
+    $("#show-model").modal("show");
+  }
 }
 
 /* Display the available models on the card table-available-models */
@@ -267,7 +333,7 @@ function displayModels() {
   } else {
     let size = 0;
     html +=
-      "<thead><tr><th class='sortable'>Name</th><th class='text-end sortable'>File Size</th><th class='text-end sortable'>Params</th><th class='text-end sortable'>Family</th><th class='text-end sortable'>Quantization</th><th class='text-end sortable'>Installed</th></tr></thead>";
+      "<thead><tr><th class='sortable' colspan='2'>Name</th><th class='text-end sortable'>File Size</th><th class='text-end sortable'>Params</th><th class='text-end sortable'>Family</th><th class='text-end sortable'>Quantization</th><th class='text-end sortable'>Installed</th></tr></thead>";
     html += "<tbody>";
     for (let i = 0; i < proxy.models.length; i++) {
       pill1 = `<span class="badge bg-info rounded-pill">${sanitizeHTML(
@@ -286,6 +352,12 @@ function displayModels() {
         sanitizeHTML(proxy.models[i].digest) +
         "'><td>" +
         sanitizeHTML(proxy.models[i].name) +
+        "</td><td>" +
+        "<button class='form-control btn btn-sm btn-info p-0 btn-detail-model' data-name='" +
+        sanitizeHTML(proxy.models[i].name) +
+        "' onclick='showModelDetail(this.dataset.name, " +
+        i +
+        ")'>details</button>" +
         "</td><td class='text-end' data-sort='" +
         sanitizeHTML(proxy.models[i].size) +
         "'>" +
