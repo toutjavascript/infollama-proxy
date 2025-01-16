@@ -21,6 +21,7 @@ def get_device_info():
     start_time0 = timeit.default_timer()
 
     start_time = timeit.default_timer()
+    gpus=None
     try:
         import GPUtil
         gpus = GPUtil.getGPUs()
@@ -30,10 +31,10 @@ def get_device_info():
                     'serial': gpu.serial, 
                     'temperature': gpu.temperature, 
                     'load': gpu.load, 
-                    'memoryTotal':gpu.memoryTotal if gpu.memoryTotal>100000 else gpu.memoryTotal*1024*1024, 
-                    'memoryUtil': gpu.memoryUtil if gpu.memoryUtil>100000 else gpu.memoryUtil*1024*1024,
-                    'memoryUsed': gpu.memoryUsed if gpu.memoryUsed>100000 else gpu.memoryUsed*1024*1024,
-                    'memoryFree': gpu.memoryFree if gpu.memoryFree>100000 else gpu.memoryFree*1024*1024,
+                    'memoryTotal':gpu.memoryTotal if gpu.memoryTotal>1000000 else gpu.memoryTotal*1024*1024, 
+                    'memoryUtil': gpu.memoryUtil if gpu.memoryUtil>1000000 else gpu.memoryUtil*1024*1024,
+                    'memoryUsed': gpu.memoryUsed if gpu.memoryUsed>1000000 else gpu.memoryUsed*1024*1024,
+                    'memoryFree': gpu.memoryFree if gpu.memoryFree>1000000 else gpu.memoryFree*1024*1024,
                     'display_mode': gpu.display_mode,
                     'display_active': gpu.display_active
                     } 
@@ -129,7 +130,7 @@ def get_device_info():
                 "cpu_util": cpu_util,
                 "cpu_name": cpu_name,
                 "ram_info": ram_info,
-                "gpus": gpu_info,
+                "gpus": gpus,
                 "hdd_info": hdd_info
             },
             

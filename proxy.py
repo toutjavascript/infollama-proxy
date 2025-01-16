@@ -29,7 +29,7 @@ OLLAMA_MIN_RELEASE="0.5.5"
 anonymous_allowed_endpoints=  ["api/tags", "v1/models", "api/version"]
 
 # Only users with a valid token can access that endpoints
-user_allowed_endpoints= ["api/show",
+user_allowed_endpoints= ["api/show", 
                          "api/version",
                          "api/ps",
                          "api/generate",
@@ -296,7 +296,7 @@ class InfollamaProxy:
                 model["expires_in"] = utils.get_diff_date(model.get("expires_at"))
             return ps
         except Exception as e:
-            return {"error": str(e)}
+            return {"error get_info_ps()": str(e)}
 
     def get_ollama_env_var(self) -> None:
         """Get the Ollama environment variables from the system"""
@@ -307,6 +307,7 @@ class InfollamaProxy:
                 self.env_vars[key]=os.getenv(key)
         except KeyError:
             pass
+
 
     def create_url(self, endpoint: str) -> str:
         """Create a URL for the Ollama API, with base_url and endpoint"""
@@ -322,7 +323,7 @@ class InfollamaProxy:
             # return a status code 403 to flask server
             return abort(403)
 
-        if endpoint=="api/ps" or endpoint=="api/tags" or endpoint=="v1/models":
+        if endpoint=="api/ps" or endpoint=="api/tags" or endpoint=="v1/models" or endpoint=="api/show":
             # if access is authorized and the endpoint are not sensible, log_level is 0 and no log is stored
             log_level=0
         self.log_event(access.user_name, "GET", endpoint, 200, log_level=log_level)
@@ -344,7 +345,7 @@ class InfollamaProxy:
         if access.is_authorised is False:
             self.log_event(access.user_name, "POST", endpoint, 403, log_level=9)
             return abort(403)
-  
+
         url = self.create_url(endpoint)     
         try:
             response = requests.post(url, json=data, params=kwargs)
@@ -463,8 +464,8 @@ if __name__ == "__main__":
     
     appPath=utils.getAppPath()
     # Prevent http flask web server logging in terminal 
-    log = logging.getLogger('werkzeug')
-    log.disabled = True
+    #log = logging.getLogger('werkzeug')
+    #log.disabled = True
     
     if proxy.ollama_running:
         pytherminal.console(f"[ok]Proxy server is listening your LLM API Calls @[url]{proxy.localhost}:{proxy.port}[/url][/ok]", False)
@@ -518,6 +519,7 @@ if __name__ == "__main__":
             return proxy.get_info_ps(request.headers)
         else:
             return abort(403)
+
 
 
     @proxy.server.route('/favicon.ico', methods=['GET'])

@@ -6,6 +6,7 @@ const user = {
 };
 const proxy = {
   models: [],
+  modelDetails: [],
   needModelDisplayUpdate: true,
   ps: [],
   device: {},
@@ -16,48 +17,6 @@ const proxy = {
   validToken: false,
 };
 
-function getCurrentHostType() {
-  const host = window.location.hostname;
-  if (host == "localhost" || host == "127.0.0.1") {
-    return "LOCAL";
-  } else if (
-    host.startsWith("192.168.") ||
-    host.startsWith("10.0.") ||
-    host.startsWith("172.16.")
-  ) {
-    return "LAN";
-  } else {
-    return "WAN";
-  }
-}
-
-function sanitizeHTML(str) {
-  var temp = document.createElement("div");
-  temp.textContent = str;
-  return temp.innerHTML;
-}
-
-function getCookie(name) {
-  var nameEQ = name + "=";
-  var ca = document.cookie.split(";");
-  for (var i = 0; i < ca.length; i++) {
-    var c = ca[i];
-    while (c.charAt(0) == " ") c = c.substring(1, c.length);
-    if (c.indexOf(nameEQ) == 0)
-      return decodeURIComponent(c.substring(nameEQ.length, c.length));
-  }
-  return null;
-}
-function setCookie(name, value, days) {
-  var expires = "";
-  if (days) {
-    var date = new Date();
-    date.setTime(date.getTime() + days * 24 * 60 * 60 * 1000);
-    expires = "; expires=" + date.toUTCString();
-  }
-  var cookieString = name + "=" + value + expires + "; path=/";
-  document.cookie = cookieString;
-}
 function logout() {
   var logoutModal = new bootstrap.Modal(document.getElementById("logoutModal"));
   logoutModal.show();
@@ -229,35 +188,32 @@ function getModels() {
       });
   });
 }
-function formatBytes(bytes, decimals = 1, force = "GB") {
-  if (bytes === 0) return "0 Byte";
-  const k = 1024;
-  const dm = decimals < 0 ? 0 : decimals;
-  const sizes = ["Bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
-  let i = Math.floor(Math.log(bytes) / Math.log(k));
-  if (force != "" && sizes.includes(force)) {
-    i = sizes.indexOf(force);
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + " " + sizes[i];
-  }
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + " " + sizes[i];
-}
 
-/* Returns the difference between two dates in days or weeks or months */
-function getDeltaTime(date) {
-  if (typeof date === "string") {
-    date = new Date(date);
-  }
-  const now = new Date();
-  const diff = now - date;
-  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-  const weeks = Math.floor(days / 7);
-  const months = Math.floor(days / 30);
-  const years = Math.floor(days / 365);
-  if (years > 0) return `${years} year${years > 1 ? "s" : ""}`;
-  else if (months > 0) return `${months} month${months > 1 ? "s" : ""}`;
-  else if (weeks > 0) return `${weeks} week${weeks > 1 ? "s" : ""}`;
-  else if (days > 0) return `${days} day${days > 1 ? "s" : ""}`;
-  else return "today";
+/* Call all the /api/show to get details */
+function getAllShowModels() {
+  /* Check if details is not already fetched */
+  var token = getCookie("proxy-token");
+
+  proxy.models.forEach((model, index) => {
+    if (!proxy.modelDetails.includes(model.name)) {
+      fetch("/api/show", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + token,
+        },
+        stream: false,
+        body: JSON.stringify({ model: model.name }),
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          proxy.modelDetails[model.name] = data;
+        })
+        .catch((error) => {
+          console.error("Error on getAllShowModels():", error);
+        });
+    }
+  });
 }
 
 /* Display software and network card */
@@ -361,6 +317,23 @@ function displayModels() {
   makeTableSortable();
 }
 
+/* Return a gauge based on the VRAM GPU usage */
+function displayGPUChart(gpu) {
+  const ramUsagePercentage = Math.round(
+    (gpu.memoryUsed / device.memoryTotal) * 100
+  );
+
+  let gauge = `<div class="progress" style="height: 20px; margin-bottom: 5px;">
+  <div id="ram-usage" class="progress-bar" role="progressbar" style="width: ${ramUsagePercentage}%; background-color: ${
+    ramUsagePercentage > 80 ? "red" : "green"
+  };" aria-valuenow="${ramUsagePercentage}" aria-valuemin="0" aria-valuemax="100">${ramUsagePercentage.toFixed(
+    0
+  )}%</div>
+  </div>`;
+
+  return gauge;
+}
+
 function displayDevice() {
   const device = proxy.device;
   let icon = `bi-windows`;
@@ -391,7 +364,7 @@ function displayDevice() {
       let vram = formatBytes(device.gpus[i].memoryTotal, 0);
       gpus += `<div>${num}${sanitizeHTML(
         device.gpus[i].name + " " + vram
-      )}</div>`;
+      )}</div>${displayGPUChart(device.gpus[i])}`;
     }
   }
   discrete_gpus =
@@ -490,78 +463,6 @@ function displayPS() {
   });
 }
 
-function makeTableSortable() {
-  $(".sortable").click(function () {
-    const table = $(this).parents("table").eq(0);
-    const rows = table
-      .find("tr:gt(0)")
-      .toArray()
-      .sort(comparer($(this).index()));
-    this.asc = !this.asc;
-
-    // Update sort indicators
-    $(".sortable").removeClass("asc desc");
-    $(this).addClass(this.asc ? "asc" : "desc");
-
-    // Sort the rows
-    if (!this.asc) {
-      rows.reverse();
-    }
-
-    // Reattach sorted rows to table
-    for (let i = 0; i < rows.length; i++) {
-      table.append(rows[i]);
-    }
-  });
-}
-
-function convertValueEndsWithBOrM(value) {
-  return value.endsWith("b")
-    ? parseFloat(value) * 1e9
-    : value.endsWith("m")
-    ? parseFloat(value) * 1e6
-    : parseFloat(value);
-}
-
-function comparer(index) {
-  return function (a, b) {
-    const valA = getCellValue(a, index).toLowerCase();
-    const valB = getCellValue(b, index).toLowerCase();
-
-    // Check if the values are numbers
-    const numA = parseFloat(valA);
-    const numB = parseFloat(valB);
-    if (!isNaN(numA) && !isNaN(numB)) {
-      // Check if string ends with a B or a M
-      if (
-        (valA.endsWith("b") || valA.endsWith("m")) &&
-        (valB.endsWith("b") || valB.endsWith("m"))
-      ) {
-        // Convert B or M to bytes
-        const bytesA = convertValueEndsWithBOrM(valA);
-        const bytesB = convertValueEndsWithBOrM(valB);
-        return bytesA - bytesB;
-      } else {
-        if (valA == numA.toString() && valB == numB.toString()) {
-          /* Real numbers */
-          return numA - numB;
-        } else {
-          return valA.toString().localeCompare(valB);
-        }
-      }
-    }
-
-    // If not numbers, compare as strings
-    return valA.toString().localeCompare(valB);
-  };
-}
-
-function getCellValue(row, index) {
-  const cell = $(row).children("td").eq(index);
-  // Check if there's a data-sort attribute
-  return cell.attr("data-sort") || cell.text();
-}
-
 /* Check if the token is valid by a call to the proxy server. If valid, store to cookie and start web ui */
 function send_token(token) {
   console.log("send_token(" + token + ")");
@@ -624,7 +525,7 @@ function send_token(token) {
       }
     })
     .catch((error) => {
-      console.error("Error:", error);
+      console.error("Error ping(token):", error);
       showAlert("alert-error");
       return false;
     });
@@ -666,6 +567,7 @@ function startUIWhenLogin() {
       displaySoft();
       updateHeader();
       updateFlowContainer();
+      getAllShowModels();
     })
     .catch((error) => {
       console.error("Error on startUIWhenLogin() :", error);
@@ -676,7 +578,7 @@ function startUIWhenLogin() {
 /* Heart Beat of the UI app to check connexion and LLM server usage */
 function heartBeat() {
   setInterval(() => {
-    Promise.all([getModels(), getPS(), getDevice()])
+    Promise.all([ping(), getModels(), getPS(), getDevice()])
       .then((data) => {
         displayPS();
         displayModels();

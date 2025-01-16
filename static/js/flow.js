@@ -2,7 +2,14 @@
 
 function getFlowContainer() {
   const hostType = getCurrentHostType();
-  const hardware = sanitizeHTML(proxy.device.cpu_name);
+  let hardware = sanitizeHTML(proxy.device.cpu_name);
+  hardware += ` ${formatBytes(proxy.device.ram_installed, 0)} RAM`;
+  if (proxy.device.gpus) {
+    const vram = proxy.device.gpus.reduce((sum, gpu) => {
+      return sum + gpu.memoryTotal;
+    });
+    hardware += ` + ${formatBytes(vram, 0)} VRAM`;
+  }
   const lan_ip = sanitizeHTML(proxy.ping.config.lan_ip);
   const port = sanitizeHTML(proxy.ping.config.port);
 
