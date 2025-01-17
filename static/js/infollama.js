@@ -259,7 +259,6 @@ function showModelDetail(name, num_model) {
     const languages = show.model_info["general.languages"] || null;
     const licence = show.model_info["general.license"] || null;
     const context_length = show.model_info[arch + ".context_length"] || null;
-    console.log(show);
     $("#show-model-name").html(`Detail configuration for <strong>${sanitizeHTML(
       name
     )}</strong><br>
@@ -333,14 +332,14 @@ function displayModels() {
   } else {
     let size = 0;
     html +=
-      "<thead><tr><th class='sortable' colspan='2'>Name</th><th class='text-end sortable'>File Size</th><th class='text-end sortable'>Params</th><th class='text-end sortable'>Family</th><th class='text-end sortable'>Quantization</th><th class='text-end sortable'>Installed</th></tr></thead>";
+      "<thead><tr><th class='sortable' colspan='2'>Name</th><th class='text-end sortable'>File Size</th><th class='text-end sortable'>Family</th><th class='text-end sortable'>Params</th><th class='text-end sortable'>Quantization</th><th class='text-end sortable'>Installed</th></tr></thead>";
     html += "<tbody>";
     for (let i = 0; i < proxy.models.length; i++) {
-      pill1 = `<span class="badge bg-info rounded-pill">${sanitizeHTML(
-        proxy.models[i].details.family
-      )}</span>`;
       pill2 = `<span class="badge bg-secondary rounded-pill">${sanitizeHTML(
         proxy.models[i].details.parameter_size
+      )}</span>`;
+      pill1 = `<span class="badge bg-info rounded-pill">${sanitizeHTML(
+        proxy.models[i].details.family
       )}</span>`;
       pill3 = `<span class="badge bg-secondary rounded-pill">${sanitizeHTML(
         proxy.models[i].details.quantization_level
@@ -363,9 +362,9 @@ function displayModels() {
         "'>" +
         formatBytes(proxy.models[i].size) +
         "</td><td class='text-end'>" +
-        pill2 +
-        "</td><td class='text-end'>" +
         pill1 +
+        "</td><td class='text-end'>" +
+        pill2 +
         "</td><td class='text-end' data-sort='" +
         sanitizeHTML(
           proxy.models[i].details.quantization_level.replace(/([QF])/g, "")
@@ -378,15 +377,26 @@ function displayModels() {
         installed +
         "</td></tr>";
     }
+    html += "</tbody>";
+
     title = `${proxy.models.length} model${
       proxy.models.length > 1 ? "s" : ""
-    } available using ${formatBytes(size)} on disk`;
-    html += "</tbody>";
+    } available using ${formatBytes(
+      size
+    )} on disk <input type="text" id="searchInput" class="form-control" placeholder="Filter this list by name...">`;
   }
   titleElement.innerHTML = title;
   tableElement.innerHTML = html;
   displayPS(); /* Force to refresh the tr highlight on running models */
   makeTableSortable();
+
+  /* Filtering by name */
+  $("#searchInput").on("keyup", function () {
+    var value = $(this).val().toLowerCase();
+    $("#table-available-models tbody tr").filter(function () {
+      $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1);
+    });
+  });
 }
 
 /* Return a gauge based on the VRAM GPU usage */
@@ -537,7 +547,6 @@ function displayPS() {
 
 /* Check if the token is valid by a call to the proxy server. If valid, store to cookie and start web ui */
 function send_token(token) {
-  console.log("send_token(" + token + ")");
   var token_checked = false;
   if (token != "") {
     if (token.length > 10) {
@@ -556,8 +565,6 @@ function send_token(token) {
     .then((data) => {
       if (data.ping == true) {
         proxy.lastPingSuccess = new Date();
-        console.log("ping call success");
-        console.log("ping=", data);
         if (data.user.user_type == "anonymous") {
           //proxy.validToken = false;
           showAlert("alert-error");
@@ -568,7 +575,6 @@ function send_token(token) {
 
             Promise.all([getModels(), getPS(), getDevice()])
               .then((results) => {
-                console.log("results", results);
                 displayPS();
                 displayDevice();
                 proxy.needModelDisplayUpdate = true;
@@ -625,14 +631,12 @@ function updateHeader() {
 
 /* Launch the UI when a valid token is provided */
 function startUIWhenLogin() {
-  console.log("startUIWhenLogin() starting");
   document.getElementById("div-connect").style.display = "none";
   document.getElementById("div-ui").classList.remove("d-none");
 
   Promise.all([getModels(), getPS(), getDevice()])
     .then((results) => {
       const [models, ps, device] = results;
-      console.log("Device:", device);
       displayPS();
       displayModels();
       displayDevice();

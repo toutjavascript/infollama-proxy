@@ -8,8 +8,8 @@ Infollama also retrieves and displays usefull details about Ollama server (model
 Very first pre alpha release shared to debug and test on various devices. Please report any issues or bugs you encounter during testing. You can share your ideas and needs.
 
 ## Features
-![The Infollama Proxy web UI, with models running, models available and hardware details](https://github.com/user-attachments/assets/268dd860-691e-46eb-b236-7be858b195a9)
 
+![The Infollama Proxy web UI, with models running, models available and hardware details](https://github.com/user-attachments/assets/268dd860-691e-46eb-b236-7be858b195a9)
 
 - Run a proxy to access your Ollama API server, on localhost, LAN and WAN
 - Protect your Ollama server with one token by user or usage
@@ -104,7 +104,8 @@ You can log every prompt that are sent to server. Note that response are not log
 
 - `NEVER`: No logs at all.
 - `ERROR`: Log only error and not authorised requests.
-- `INFO`: Log every avery access, **excluding prompts**
+- `INFO`: Log usefull access (not api/ps, api/tags, ...), **excluding prompts**
+- `PROMPT`: Log useful access (not api/ps, api/tags, ...), **including prompts**
 - `ALL`: Log every event, **including prompts**
 
-By default, the level is set to `ALL`.
+By default, the level is set to `PROMPT`.

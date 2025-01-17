@@ -169,13 +169,10 @@ class InfollamaProxy:
             Use the log level to detect the severity of the event
         """
 
-        # Do not log if the event is level 0 (ex api/ps or api/tags if access is authenticated) to preserve size file
-        if log_level == 0:
-           return   
 
 
         config_level=self.config.log_level
-        # CONFIG LOG LEVEL can be: NEVER|ERROR|INFO|ALL
+        # CONFIG LOG LEVEL can be: NEVER|ERROR|INFO|PROMPT|ALL
         if config_level=="NEVER":
             return
 
@@ -185,15 +182,21 @@ class InfollamaProxy:
             if log_level>=5:
                 to_be_log=True
 
-        # Log each event if the event is level > 1 but without extra event text
+        # Log each usefull event if the event is level > 1 but without extra event text
         if config_level=="INFO":
             if log_level>=1:
                 to_be_log=True
                 event=""
         
-        # Log each event if the event is level > 1 but with extra event text (wich contains prompts if provided)
-        if config_level=="ALL":
+        # Log each usefull event level > 1 with extra event text (wich contains prompts if provided)
+        if config_level=="PROMPT":
             if log_level>=1:
+                to_be_log=True
+        
+
+        # Log every event (even if the event is level == 0) with extra event text (wich contains prompts if provided)
+        if config_level=="ALL":
+            if log_level>=0:
                 to_be_log=True
         
         if to_be_log is False:
@@ -203,7 +206,6 @@ class InfollamaProxy:
             url="/"+url
         
         ip=self.get_user_ip()
-
 
         try:
             with open(self.config.log_file, "a") as log_file:
@@ -322,7 +324,7 @@ class InfollamaProxy:
             self.log_event(access.user_name, "GET", endpoint, 403, log_level=9)
             # return a status code 403 to flask server
             return abort(403)
-
+        log_level=1
         if endpoint=="api/ps" or endpoint=="api/tags" or endpoint=="v1/models" or endpoint=="api/show":
             # if access is authorized and the endpoint are not sensible, log_level is 0 and no log is stored
             log_level=0
@@ -345,11 +347,15 @@ class InfollamaProxy:
         if access.is_authorised is False:
             self.log_event(access.user_name, "POST", endpoint, 403, log_level=9)
             return abort(403)
+        log_level=1
+        if endpoint=="api/ps" or endpoint=="api/tags" or endpoint=="v1/models" or endpoint=="api/show":
+            # if access is authorized and the endpoint are not sensible, log_level is 0 and no log is stored
+            log_level=0
 
         url = self.create_url(endpoint)     
         try:
-            response = requests.post(url, json=data, params=kwargs)
-            self.log_event(access.user_name, "POST", endpoint, 200, log_level=1, event=request.json.__str__())
+            response = requests.post(url, json=request.json, params=kwargs)
+            self.log_event(access.user_name, "POST", endpoint, 200, log_level=log_level, event=request.json.__str__())
             if (utils.is_json(response.text)):
                 return response.json()      
             else:
@@ -364,7 +370,11 @@ class InfollamaProxy:
         if access.is_authorised is False:
             self.log_event(access.user_name, "STREAM", endpoint, 403, log_level=9)
             return abort(403)
-        self.log_event(access.user_name, "STREAM", endpoint, 200, log_level=1, event=request.json.__str__())
+        log_level=1
+        if endpoint=="api/ps" or endpoint=="api/tags" or endpoint=="v1/models" or endpoint=="api/show":
+            # if access is authorized and the endpoint are not sensible, log_level is 0 and no log is stored
+            log_level=0        
+        self.log_event(access.user_name, "STREAM", endpoint, 200, log_level=log_level, event=request.json.__str__())
 
         url = self.create_url(endpoint)        
         return Response(stream_with_context(stream_request('POST', url, json=request.json, params=request.args)), content_type=request.headers.get('Content-Type'))
@@ -424,7 +434,7 @@ if __name__ == "__main__":
     cors_policy="*"                         # cors policy of the proxy server (* allows all origins, None fixes policy to same origin)
     base_url="http://localhost:11434"       # base url of the Ollama server
     user_file="users.conf"                  # path to the user file containing credentials
-    log_level="ALL"                         # log level of the proxy server
+    log_level="PROMPT"                      # log level of the proxy server
     log_file="proxy.log"                    # path to the log file for the proxy server
     anonymous_access=False                  # Allows anonymous access to all API without providing token (default false)
     ##########################################################################################################################################
@@ -436,7 +446,7 @@ if __name__ == "__main__":
     parser.add_argument('--port', type=str, default=tjs_port, help=f'The port for the proxy server (default: {tjs_port})')
     parser.add_argument('--cors', type=str, default=cors_policy, help=f'The cors policy for the proxy server (default: {cors_policy})')
     parser.add_argument('--anonym', type=bool, default=anonymous_access, help=f'Authorize the proxy server to be accessed anonymously without token (default: {anonymous_access})')
-    parser.add_argument('--log', type=str, default=log_level, help=f'Define the log level that is stored in {log_file} (default: {log_level}, Could be NEVER|ERROR|INFO|ALL)')
+    parser.add_argument('--log', type=str, default=log_level, help=f'Define the log level that is stored in {log_file} (default: {log_level}, Could be NEVER|ERROR|INFO|PROMPT|ALL)')
     args = parser.parse_args()
 
     proxy = InfollamaProxy(base_url=args.base_url, host=args.host, port=args.port, cors_policy=args.cors, user_file=user_file, log_level=args.log, log_file=log_file,  anonymous_access=args.anonym )
@@ -497,6 +507,7 @@ if __name__ == "__main__":
                 ping.ping=True
                 ping.config=proxy.config
                 ping.ollama_version=proxy.ollama_version
+                proxy.get_ollama_version() # To update version number
                 return ping.to_dict()
             else:
                 return ping.to_dict()
