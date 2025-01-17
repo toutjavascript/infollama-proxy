@@ -523,7 +523,6 @@ if __name__ == "__main__":
                 proxy.device=device.get_device_info()
             except Exception as e:
                 traceback.print_exc()
-
                 print("Error get_device_info():", e)
                 proxy.device=None
 

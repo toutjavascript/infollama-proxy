@@ -22,9 +22,7 @@ def get_device_info():
     try:
         import GPUtil
         gpus = GPUtil.getGPUs()
-        #print ("GPUS Found: ", len(gpus))
 
-        #print(gpus)
         gpu_info = [{'id': gpu.id, 
                     'uuid': gpu.uuid, 
                     'name': gpu.name, 
@@ -39,14 +37,12 @@ def get_device_info():
                     'display_active': gpu.display_active
                     } 
                     for gpu in gpus]
-        print(gpu_info)
         if len(gpu_info)==0:
             gpu_info=None
     except Exception as e:
         print("Error get_device_info():", e)
         gpu_info = None
 
-    gpu_info=None
 
     end_time = timeit.default_timer()
     #print(f"Execution time GPUtil.getGPUs(): {end_time - start_time} seconds")
@@ -136,7 +132,7 @@ def get_device_info():
                 "cpu_util": cpu_util,
                 "cpu_name": cpu_name,
                 "ram_info": ram_info,
-                "gpus": gpus,
+                "gpus": gpu_info,
                 "hdd_info": hdd_info
             },
             
@@ -213,6 +209,7 @@ def get_device_info():
             "hostname": "",
             "description": "Hardware not detected"
         }
+
 
     return device
 
