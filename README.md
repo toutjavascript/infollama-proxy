@@ -120,7 +120,6 @@ Log file uses Apache server log format. For example, one line with `PROMPT` leve
 
 If you see this message, try to update your install with:
 
-````
+```
 pip install -U pip setuptools wheel
-```sh
-````
+```
