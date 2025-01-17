@@ -10,11 +10,8 @@ from src import utils
 def get_file_size(file_path):
     try:
         return os.path.getsize(file_path)
-    except Exception as e:
-        print(f"Error getting file size: {e}")
-        traceback.print_exc()
-        return None
-
+    except FileNotFoundError:
+        return 0
 
 # Get hardware informations about the device (CPU, RAM, GPU)
 def get_device_info():
@@ -25,6 +22,9 @@ def get_device_info():
     try:
         import GPUtil
         gpus = GPUtil.getGPUs()
+        print ("GPUS Found: ", len(gpus))
+
+        print(gpus)
         gpu_info = [{'id': gpu.id, 
                     'uuid': gpu.uuid, 
                     'name': gpu.name, 
@@ -39,7 +39,11 @@ def get_device_info():
                     'display_active': gpu.display_active
                     } 
                     for gpu in gpus]
-    except:
+        print(gpu_info)
+        if len(gpu_info)==0:
+            gpu_info=None
+    except Exception as e:
+        print("Error:", e)
         gpu_info = None
 
     end_time = timeit.default_timer()

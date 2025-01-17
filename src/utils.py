@@ -4,7 +4,8 @@ import importlib.metadata
 import sys
 import platform
 import json
-import datetime
+from datetime import datetime
+
 
 # Return true if the python script is running in a venv environment
 def in_venv():
@@ -34,9 +35,9 @@ def formatBytes(B, round_to=2):
 
 def get_diff_date(dt1, dt2="now"):
     if dt2 == "now":
-        dt2 = datetime.datetime.now().isoformat()
-    dt1 = datetime.datetime.fromisoformat(dt1)
-    dt2 = datetime.datetime.fromisoformat(dt2)
+        dt2 = datetime.now().isoformat()
+    dt1 = datetime.fromisoformat(dt1)
+    dt2 = datetime.fromisoformat(dt2)
     
     if dt1.tzinfo is None and dt2.tzinfo is not None:
         dt1 = dt1.replace(tzinfo=dt2.tzinfo)
@@ -148,15 +149,12 @@ def getRequirements(file="requirements.txt", display=False):
         print("Content of "+file)
         for module in requirements:
             print(" "+"{:<18}".format(module)+requirements[module])
+        print(checkVersions(requirements))
 
     return requirements
 
 def pathJoin(dir, file):
     return os.path.join(dir, file.replace("/", "\\"))
 
-
-def clearTmpFolder(folder_path="outputs/tmp"):
-    for filename in os.listdir(folder_path):
-        file_path = os.path.join(folder_path, filename)
-        if os.path.isfile(file_path):
-            os.remove(file_path)
+if __name__ == "__main__":
+    print(getRequirements("./requirements.txt", True))

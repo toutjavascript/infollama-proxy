@@ -65,8 +65,8 @@ def print_line(text):
 
 def clear_line():
     """Clear the terminal line. The line can be printed again by the print_line() function."""
-    sys.stdout.write('\033[2K')  # Clear the entire line
-    sys.stdout.write('\033[0G')  # Move the cursor to the beginning of the line
+    sys.stdout.write('\u001b[2K')  # Clear the entire line
+    sys.stdout.write('\u001b[0G')  # Move the cursor to the beginning of the line
     sys.stdout.flush()
 
 
@@ -185,23 +185,23 @@ def table(my_array, ignore_columns=None, align_right_columns=None):
 
 def parseBB(text):
     """Parse BB code into ASCII colored plain text."""
-    text=re.sub(r"(\[h1\])(.+)(\[/h1\])", "\033[32;1m\\2\033[0m", text, flags=re.IGNORECASE)
-    text=re.sub(r"(\[ok\])(.+)(\[/ok\])", "\033[32;1m\\2\033[0m", text, flags=re.IGNORECASE)
-    text=re.sub(r"(\[green\])(.+)(\[/green\])", "\033[32m\\2\033[0m", text, flags=re.IGNORECASE)
-    text=re.sub(r"(\[size\])(.+)(\[/size\])", "\033[95m\\2\033[0m", text, flags=re.IGNORECASE)
-    text=re.sub(r"(\[error\])(.+)(\[/error\])", "\033[31;1m\\2\033[0m", text, flags=re.IGNORECASE)
-    text=re.sub(r"(\[b\])([^\[\]]+)(\[/b\])", "\033[1m\\2\033[0m", text, flags=re.IGNORECASE)
-    text=re.sub(r"(\[url\])(.+)(\[/url\])", "\033[4m\\2\033[24m", text, flags=re.IGNORECASE)
-    text=re.sub(r"(\[file\])(.+)(\[/file\])", "\033[4m\\2\033[24m", text, flags=re.IGNORECASE)
-    text=re.sub(r"(\[u\])(.+)(\[/u\])", "\033[4m\\2\033[24m", text, flags=re.IGNORECASE)
-    text=re.sub(r"(\[d\])(.+)(\[/d\])", "\033[2m\\2\033[22m", text, flags=re.IGNORECASE)
-    text=re.sub(r"(\[fade\])(.+)(\[/fade\])", "\033[2m\\2\033[22m", text, flags=re.IGNORECASE)
-    text=re.sub(r"(\[warning\])(.+)(\[/warning\])", "\033[33m\\2\033[0m", text, flags=re.IGNORECASE)
-    text=re.sub(r"(\[reset\])", "\033[0m\033[49m", text, flags=re.IGNORECASE)
-    text=re.sub(r"(\[reverse\])(.+)(\[/reverse\])", "\033[7m\\2\033[0m", text, flags=re.IGNORECASE)
-    text=re.sub(r"(\[header\])(.+)(\[/header\])", "\033[1m\\2\033[0m", text, flags=re.IGNORECASE)
-    text=re.sub(r"(\[hour\])(.+)(\[/hour\])", "\033[48;5;255m\\2\033[0m", text, flags=re.IGNORECASE)
-    text=re.sub(r"(\[shell\])(.+)(\[/shell\])", "\033[44;1;97m\\2\033[0m", text, flags=re.IGNORECASE)
+    text=re.sub(r"(\[h1\])(.+)(\[/h1\])", "\u001b[32;1m\\2\u001b[0m", text, flags=re.IGNORECASE)
+    text=re.sub(r"(\[ok\])(.+)(\[/ok\])", "\u001b[32;1m\\2\u001b[0m", text, flags=re.IGNORECASE)
+    text=re.sub(r"(\[green\])(.+)(\[/green\])", "\u001b[32m\\2\u001b[0m", text, flags=re.IGNORECASE)
+    text=re.sub(r"(\[size\])(.+)(\[/size\])", "\u001b[95m\\2\u001b[0m", text, flags=re.IGNORECASE)
+    text=re.sub(r"(\[error\])(.+)(\[/error\])", "\u001b[31;1m\\2\u001b[0m", text, flags=re.IGNORECASE)
+    text=re.sub(r"(\[b\])([^\[\]]+)(\[/b\])", "\u001b[1m\\2\u001b[0m", text, flags=re.IGNORECASE)
+    text=re.sub(r"(\[url\])(.+)(\[/url\])", "\u001b[4m\\2\u001b[24m", text, flags=re.IGNORECASE)
+    text=re.sub(r"(\[file\])(.+)(\[/file\])", "\u001b[4m\\2\u001b[24m", text, flags=re.IGNORECASE)
+    text=re.sub(r"(\[u\])(.+)(\[/u\])", "\u001b[4m\\2\u001b[24m", text, flags=re.IGNORECASE)
+    text=re.sub(r"(\[d\])(.+)(\[/d\])", "\u001b[2m\\2\u001b[22m", text, flags=re.IGNORECASE)
+    text=re.sub(r"(\[fade\])(.+)(\[/fade\])", "\u001b[2m\\2\u001b[22m", text, flags=re.IGNORECASE)
+    text=re.sub(r"(\[warning\])(.+)(\[/warning\])", "\u001b[33m\\2\u001b[0m", text, flags=re.IGNORECASE)
+    text=re.sub(r"(\[reset\])", "\u001b[0m\u001b[49m", text, flags=re.IGNORECASE)
+    text=re.sub(r"(\[reverse\])(.+)(\[/reverse\])", "\u001b[7m\\2\u001b[0m", text, flags=re.IGNORECASE)
+    text=re.sub(r"(\[header\])(.+)(\[/header\])", "\u001b[1m\\2\u001b[0m", text, flags=re.IGNORECASE)
+    text=re.sub(r"(\[hour\])(.+)(\[/hour\])", "\u001b[48;5;255m\\2\u001b[0m", text, flags=re.IGNORECASE)
+    text=re.sub(r"(\[shell\])(.+)(\[/shell\])", "\u001b[44;1;97m\\2\u001b[0m", text, flags=re.IGNORECASE)
     return text
 
 def printBB(text): 
@@ -227,7 +227,7 @@ def test():
     printBB("[reverse][b]Test of ANSI escape sequences[/b][/reverse]");
 
     for i in range(30, 37 + 1):
-        print("\033[%dm%d\t\t\033[%dm%d" % (i, i, i + 60, i + 60))
+        print("\u001b[%dm%d\t\t\u001b[%dm%d" % (i, i, i + 60, i + 60))
 
 
 if __name__ == "__main__":

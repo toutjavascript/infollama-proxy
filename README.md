@@ -100,7 +100,7 @@ If `--anonym` parameter is set to something at starts, the `users.conf` is ignor
 
 ## Logging events
 
-You can log every prompt that are sent to server. Note that response are not logged to preserve privacy and disk size. This proxy app has several levels of logging:
+You can log every prompt that are sent to server. Note that responses are not logged to preserve privacy and disk size. This proxy app has several levels of logging:
 
 - `NEVER`: No logs at all.
 - `ERROR`: Log only error and not authorised requests.
@@ -109,3 +109,9 @@ You can log every prompt that are sent to server. Note that response are not log
 - `ALL`: Log every event, **including prompts**
 
 By default, the level is set to `PROMPT`.
+
+Log file uses Apache server log format. For example, one line with `PROMPT` level looks like this:
+
+```
+127.0.0.1 - user1 [16/Jan/2025:15:53:10] "STREAM /v1/chat/completions HTTP/1.1" 200	{'model': 'falcon3:1b', 'messages': [{'role': 'system', 'content': "You are a helpful web developer assistant and you obey to user's commands"}, {'role': 'user', 'content': ' Give me 10 python web servers. Tell me cons and pros. Conclude by choosing the easiest one. Do not write code.'}], 'stream': True, 'max_tokens': 1048}
+```
