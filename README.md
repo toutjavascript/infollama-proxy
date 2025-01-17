@@ -115,3 +115,12 @@ Log file uses Apache server log format. For example, one line with `PROMPT` leve
 ```
 127.0.0.1 - user1 [16/Jan/2025:15:53:10] "STREAM /v1/chat/completions HTTP/1.1" 200	{'model': 'falcon3:1b', 'messages': [{'role': 'system', 'content': "You are a helpful web developer assistant and you obey to user's commands"}, {'role': 'user', 'content': ' Give me 10 python web servers. Tell me cons and pros. Conclude by choosing the easiest one. Do not write code.'}], 'stream': True, 'max_tokens': 1048}
 ```
+
+## FAQ
+
+If you see this message, try to update your install with:
+
+````
+pip install -U pip setuptools wheel
+```sh
+````

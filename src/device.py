@@ -24,7 +24,7 @@ def get_device_info():
         gpus = GPUtil.getGPUs()
         print ("GPUS Found: ", len(gpus))
 
-        print(gpus)
+        #print(gpus)
         gpu_info = [{'id': gpu.id, 
                     'uuid': gpu.uuid, 
                     'name': gpu.name, 
@@ -45,6 +45,8 @@ def get_device_info():
     except Exception as e:
         print("Error:", e)
         gpu_info = None
+
+    gpu_info=None
 
     end_time = timeit.default_timer()
     #print(f"Execution time GPUtil.getGPUs(): {end_time - start_time} seconds")
