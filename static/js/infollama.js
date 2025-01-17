@@ -402,7 +402,7 @@ function displayModels() {
 /* Return a gauge based on the VRAM GPU usage */
 function displayGPUChart(gpu) {
   const ramUsagePercentage = Math.round(
-    (gpu.memoryUsed / device.memoryTotal) * 100
+    (gpu.memoryUsed / gpu.memoryTotal) * 100
   );
 
   let gauge = `<div class="progress" style="height: 20px; margin-bottom: 5px;">

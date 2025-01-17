@@ -3,11 +3,12 @@
 function getFlowContainer() {
   const hostType = getCurrentHostType();
   let hardware = sanitizeHTML(proxy.device.cpu_name);
-  hardware += ` ${formatBytes(proxy.device.ram_installed, 0)} RAM`;
+  hardware += ` ${formatBytes(proxy.device.ram_installed, 0)}`;
   if (proxy.device.gpus) {
-    const vram = proxy.device.gpus.reduce((sum, gpu) => {
-      return sum + gpu.memoryTotal;
-    });
+    const vram = proxy.device.gpus.reduce(
+      (vram, gpu) => vram + gpu.memoryTotal,
+      0
+    );
     hardware += ` + ${formatBytes(vram, 0)} VRAM`;
   }
   const lan_ip = sanitizeHTML(proxy.ping.config.lan_ip);

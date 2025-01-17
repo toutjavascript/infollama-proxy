@@ -7,7 +7,15 @@
 import re
 import inspect
 import sys
+import platform
+import os
 from datetime import datetime
+
+#Init functions for BB code printing in terminal on Windows
+if platform.system() == 'Windows':
+    # Windows-specific handling
+    os.system('color')
+
 
 def get_now_as_iso():
     return datetime.now().isoformat()[:10]
