@@ -8,7 +8,8 @@ import os
 import json
 import argparse
 import multiprocessing
-import logging                      # Need to remove terminal flask log 
+import traceback
+import logging                      # Needed to remove terminal flask log 
 from flask_cors import CORS
 import src.pytherminal as pytherminal
 import src.device    as device
@@ -518,7 +519,14 @@ if __name__ == "__main__":
     def info_device():
         """ Get device information only to authorized users """
         if proxy.check_user_access(request.headers, "info/device").is_authorised:
-            proxy.device=device.get_device_info()
+            try:
+                proxy.device=device.get_device_info()
+            except Exception as e:
+                traceback.print_exc()
+
+                print("Error get_device_info():", e)
+                proxy.device=None
+
             return proxy.device
         else:
             return abort(403)

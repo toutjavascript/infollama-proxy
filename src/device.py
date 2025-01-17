@@ -22,7 +22,7 @@ def get_device_info():
     try:
         import GPUtil
         gpus = GPUtil.getGPUs()
-        print ("GPUS Found: ", len(gpus))
+        #print ("GPUS Found: ", len(gpus))
 
         #print(gpus)
         gpu_info = [{'id': gpu.id, 
@@ -43,7 +43,7 @@ def get_device_info():
         if len(gpu_info)==0:
             gpu_info=None
     except Exception as e:
-        print("Error:", e)
+        print("Error get_device_info():", e)
         gpu_info = None
 
     gpu_info=None
