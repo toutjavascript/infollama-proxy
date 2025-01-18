@@ -1,7 +1,7 @@
 /* Create the flow chart of proxy, ollama and user */
 
 function getFlowContainer() {
-  const hostType = getCurrentHostType();
+  const connectType = getCurrentConnectType();
   let hardware = sanitizeHTML(proxy.device.cpu_name);
   hardware += ` ${formatBytes(proxy.device.ram_installed, 0)}`;
   if (proxy.device.gpus) {
@@ -21,12 +21,12 @@ function getFlowContainer() {
 <div class="lan lanWAN">
   <div id="titleLAN" class="">LAN ${lan_ip}</div>
 
-  <div class="localhost localhost${hostType}">
+  <div class="localhost localhost${connectType}">
     <div id="titleDevice">${hardware}</div>
-    <div id="boxYou" class="box boxYou${hostType}">YOU</div>
+    <div id="boxYou" class="box boxYou${connectType}">YOU</div>
     <div id="boxProxy" class="box">Infollama <br />port: ${port}</div>
     <div id="boxOllama" class="box">Ollama server</div>
-    <div id="lineYou" class="line lineYou${hostType}"></div>
+    <div id="lineYou" class="line lineYou${connectType}"></div>
     <div id="lineProxy" class="line"></div>
   </div>
     <div class="vertical-line"></div>

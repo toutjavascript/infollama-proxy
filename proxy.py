@@ -303,7 +303,7 @@ class InfollamaProxy:
 
     def get_ollama_env_var(self) -> None:
         """Get the Ollama environment variables from the system"""
-        return None
+        return None # Return None as we don't need to get the environment variables from the system
         try:
             self.env_vars.clear()
             for key in ["OLLAMA_HOST", "OLLAMA_MODELS" ,"OLLAMA_MAX_LOADED_MODELS", "OLLAMA_NUM_PARALLEL", "OLLAMA_MAX_QUEUE", "OLLAMA_FLASH_ATTENTION", "OLLAMA_KV_CACHE_TYPE"]:
@@ -495,6 +495,7 @@ if __name__ == "__main__":
     @proxy.server.route('/info')
     def info():
         """ Serve the home page with localhost hardware informations & ollama server details (models available, models running, etc)"""
+        proxy.log_event("anonymoys", "GET", "/info", 200, log_level=1)
         return render_template('index.html', release=OLLAMA_PROXY_RELEASE)
 
     @proxy.server.route("/info/ping",  methods=['GET', 'POST'])
@@ -576,8 +577,10 @@ if __name__ == "__main__":
         elif request.method == 'OPTIONS':
             # Handle CORS preflight requests called by browsers on the frontend when cors origin must be checked
             # Always accept CORS preflight requests called by browsers on the frontend when cors origin must be checked
-            return '', 204 
+            if proxy.config.cors_policy=="*":
+                return '', 204 
         else:
+            proxy.log_event("-", "POST", path, 405, log_level=9)
             return "Method not allowed", 405
 
     # Manage the streaming chat completions

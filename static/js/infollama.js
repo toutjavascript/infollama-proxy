@@ -219,9 +219,10 @@ function getAllShowModels() {
 /* Display software and network card */
 function displaySoft() {
   const cardElement = document.getElementById("card-soft");
-  const type = sanitizeHTML(proxy.ping.user.user_type);
+  const userType = sanitizeHTML(proxy.ping.user.user_type);
+  const connectType = getCurrentConnectType();
   let api = "view models, view device and chat completion API";
-  if (type == "admin") {
+  if (userType == "admin") {
     api = "all the APIs of Ollama";
   }
   let lanAccess = sanitizeHTML(
@@ -230,11 +231,23 @@ function displaySoft() {
   if (proxy.ping.config.host != "0.0.0.0") {
     lanAccess = "not possible (change host to 0.0.0.0)";
   }
+  let wanAccess = "See doc to open web access";
+  let domain = "";
+  if (connectType == "WAN") {
+    domain = window.location.hostname;
+    const htmlProtocol =
+      window.location.protocol == "http:"
+        ? `<span class="badge bg-danger"><i class="bi bi-shield-exclamation"></i> NO SSL </span>`
+        : `<span class="badge bg-danger"><i class="bi bi-shield-check"></i>SSL</span>`;
+
+    wanAccess = `<span class="wanAccess">From <strong>${domain}</strong> tunnel ${htmlProtocol}</span>`;
+  }
+
   let html = `
   <div class="">Your token is associated to <b>${sanitizeHTML(
     proxy.ping.user.user_name
   )}</b></div>
-  <div class="">As <b>${type}</b>, you have access to ${api}</div>
+  <div class="">As <b>${connectType}</b>, you have access to ${api}</div>
   <div class=""><b>Infollama Proxy:</b> v${sanitizeHTML(
     proxy.ping.proxy_version
   )}</div>
@@ -245,7 +258,7 @@ function displaySoft() {
     proxy.ping.config.cors_policy
   )}</div>
   <div class=""><b>LAN API access:</b> ${lanAccess}</div>
-  <div class=""><b>WAN API access:</b> Work in progress with Ngrok</div>
+  <div class=""><b>WAN API access:</b> ${wanAccess}</div>
   `;
   cardElement.innerHTML = html;
 }
@@ -474,16 +487,10 @@ function displayDevice() {
 
   const headerDeviceElement = document.getElementById("header-device");
   html = "";
-  const hostType = getCurrentHostType();
-  if (hostType == "LAN") {
-    html = `<b>Host Type:</b> LAN<br>`;
-  } else if (hostType == "WAN") {
-    html = `<b>Host Type:</b> WAN<br>`;
-  } else {
-    html = `<b>Host Type:</b> Localhost<br>`;
-  }
 
-  headerDeviceElement.innerHTML = "";
+  headerDeviceElement.innerHTML = `Proxy running on: <br><strong>${device.hostname}</strong>`;
+
+  document.title = `Infollama Proxy - ${device.hostname}`;
 }
 
 /* Display running model on the card */

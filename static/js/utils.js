@@ -51,7 +51,7 @@ function setCookie(name, value, days) {
   document.cookie = cookieString;
 }
 
-function getCurrentHostType() {
+function getCurrentConnectType() {
   const host = window.location.hostname;
   if (host == "localhost" || host == "127.0.0.1") {
     return "LOCAL";
