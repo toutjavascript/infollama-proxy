@@ -5,6 +5,7 @@ import timeit
 import platform
 import os
 from src import utils
+from src import pytherminal
 
 # Get the size of the file
 def get_file_size(file_path):
@@ -40,9 +41,8 @@ def get_device_info():
         if len(gpu_info)==0:
             gpu_info=None
     except Exception as e:
-        print("Error get_device_info():", e)
-        print("[b]Error get_device_info():[/b]", e)
-        print("[b]Try to update your install with this command:\n pip install -U pip setuptools wheel[/b]")
+        pytherminal.console("[b]Error get_device_info():[/b]", e)
+        pytherminal.console("[b]Try to update your install with this command:\n pip install -U pip setuptools wheel[/b]")
         gpu_info = None
 
 
