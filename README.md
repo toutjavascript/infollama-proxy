@@ -20,7 +20,7 @@ Very first pre alpha release shared to debug and test on various devices. Please
 
 - Python 3.11 or higher
 - Ollama server running on your local machine
-- Tested on Windows 10/11, macOS with Mx Silicon Chip (need to be tested on Linux)
+- Tested on Linux Ubuntu, Windows 10/11, macOS with Mx Silicon Chip
 
 ## Installation
 
