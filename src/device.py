@@ -41,6 +41,8 @@ def get_device_info():
             gpu_info=None
     except Exception as e:
         print("Error get_device_info():", e)
+        print("[b]Error get_device_info():[/b]", e)
+        print("[b]Try to update your install with this command:\n pip install -U pip setuptools wheel[/b]")
         gpu_info = None
 
 
