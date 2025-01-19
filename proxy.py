@@ -475,8 +475,8 @@ if __name__ == "__main__":
     
     appPath=utils.getAppPath()
     # Prevent http flask web server logging in terminal 
-    #log = logging.getLogger('werkzeug')
-    #log.disabled = True
+    log = logging.getLogger('werkzeug')
+    log.disabled = True
     
     if proxy.ollama_running:
         pytherminal.console(f"[ok]Proxy server is listening your LLM API Calls @[url]{proxy.localhost}:{proxy.port}[/url][/ok]", False)
@@ -524,7 +524,8 @@ if __name__ == "__main__":
                 proxy.device=device.get_device_info()
             except Exception as e:
                 traceback.print_exc()
-                print("Error get_device_info():", e)
+                print("[b]Error get_device_info():[/b]", e)
+                print("[b]Try to update your install with this command:\n pip install -U pip setuptools wheel[/b]")
                 proxy.device=None
 
             return proxy.device

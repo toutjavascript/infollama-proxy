@@ -13,6 +13,7 @@ const proxy = {
   ping: {},
   lastPing: 0,
   lastPingSuccess: 0,
+  lastOllamaPingSuccess: 0,
   nbPing: 0,
   validToken: false,
 };
@@ -36,6 +37,7 @@ function logout() {
   );
 }
 
+/* Ping proxy that pings ollama */
 function ping(token = "") {
   return new Promise((resolve, reject) => {
     if (token == "") {
@@ -52,19 +54,31 @@ function ping(token = "") {
     })
       .then((response) => response.json())
       .then((data) => {
+        /* A response is received. Proxy pings successfully. Update the last ping success date and status */
         proxy.lastPingSuccess = new Date();
         proxy.ping = data;
-        const iconHeart = document.getElementById("icon-heart");
-        iconHeart.classList.add("green-heart");
-        iconHeart.classList.remove("broken-heart");
-        updateTooltipTitle("icon-heart", "Proxy and Ollama servers are up");
-        proxy.lastPingData = resolve(data);
+        if (proxy.ping.ping) {
+          /* Means ollama is pinging */
+          proxy.lastOllamaPingSuccess = new Date();
+          const iconHeart = document.getElementById("icon-heart");
+          iconHeart.classList.add("green-heart");
+          iconHeart.classList.remove("broken-heart");
+          updateTooltipTitle("icon-heart", "Proxy and Ollama servers are up");
+        } else {
+          /* Means ollama is not pinging */
+          const iconHeart = document.getElementById("icon-heart");
+          iconHeart.classList.add("broken-heart");
+          iconHeart.classList.remove("green-heart");
+          updateTooltipTitle("icon-heart", "Ollama server is down");
+        }
+        resolve(data);
       })
       .catch((error) => {
+        /* Proxy does not respond */
         const iconHeart = document.getElementById("icon-heart");
         iconHeart.classList.remove("green-heart");
         iconHeart.classList.add("broken-heart");
-        updateTooltipTitle("icon-heart", "Proxy or Ollama servers not reached");
+        updateTooltipTitle("icon-heart", "Proxy is down");
         reject(error);
       });
   });
@@ -247,7 +261,7 @@ function displaySoft() {
   <div class="">Your token is associated to <b>${sanitizeHTML(
     proxy.ping.user.user_name
   )}</b></div>
-  <div class="">As <b>${connectType}</b>, you have access to ${api}</div>
+  <div class="">As <b>${userType}</b>, you have access to ${api}</div>
   <div class=""><b>Infollama Proxy:</b> v${sanitizeHTML(
     proxy.ping.proxy_version
   )}</div>

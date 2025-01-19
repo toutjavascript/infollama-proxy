@@ -116,9 +116,19 @@ Log file uses Apache server log format. For example, one line with `PROMPT` leve
 127.0.0.1 - user1 [16/Jan/2025:15:53:10] "STREAM /v1/chat/completions HTTP/1.1" 200	{'model': 'falcon3:1b', 'messages': [{'role': 'system', 'content': "You are a helpful web developer assistant and you obey to user's commands"}, {'role': 'user', 'content': ' Give me 10 python web servers. Tell me cons and pros. Conclude by choosing the easiest one. Do not write code.'}], 'stream': True, 'max_tokens': 1048}
 ```
 
+## Roadmap
+
+Correcting bug and user issues is priority.
+
+[ ] Add a dockerfile for easy deployment and easy autostart
+[ ] Add an simple API to that returns the current usage from server (running models, hardware details, Free available VRAM, ...)
+[ ] Add integrated support for tunneling from web
+[ ] Add a fallback system to access an other LLM provider if the current one is down
+[ ] Add an easy LLM speed benchmark
+
 ## FAQ
 
-If you see this message, try to update your install with:
+If you see this error message `Error get_device_info(): no module name 'distutils'`, try to update your install with:
 
 ```
 pip install -U pip setuptools wheel
