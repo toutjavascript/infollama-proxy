@@ -485,9 +485,9 @@ function displayDevice() {
       }
       temp = ` <span class="badge ${class_badge}">${device.gpus[i].temperature}°C</span>`;
 
-      gpus += `<div>${num}${sanitizeHTML(
-        device.gpus[i].name + " <b>" + vram + "</b>" + temp
-      )}</div>${displayGPUChart(device.gpus[i])}`;
+      gpus += `<div>${num}${
+        sanitizeHTML(device.gpus[i].name) + " <b>" + vram + "</b>" + temp
+      }</div>${displayGPUChart(device.gpus[i])}`;
     }
   }
   discrete_gpus =
