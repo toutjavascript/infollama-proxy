@@ -108,7 +108,7 @@ def get_device_info():
             ram_installed=ram_info.total            
 
         if os_name=="Windows" or os_name=="Linux":
-            os="Windows"
+            os=os_name
             versions=os_detail.split("-")
             os_version=versions[1]
             if os_version=="10":
