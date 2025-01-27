@@ -472,8 +472,9 @@ function displayDevice() {
       }
       let vram = formatBytes(device.gpus[i].memoryTotal, 0);
       let temp = "";
+      let class_badge = "";
       if (device.gpus[i].temperature != null) {
-        let class_badge = "badge-primary";
+        class_badge = "badge-primary";
         if (device.gpus[i].temperature >= 80) {
           class_badge = "badge-danger";
         } else if (device.gpus[i].temperature >= 60) {
