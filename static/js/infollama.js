@@ -471,8 +471,21 @@ function displayDevice() {
         num = `#${i + 1} `;
       }
       let vram = formatBytes(device.gpus[i].memoryTotal, 0);
+      let temp = "";
+      if (device.gpus[i].temperature != null) {
+        let class_badge = "badge-primary";
+        if (device.gpus[i].temperature >= 80) {
+          class_badge = "badge-danger";
+        } else if (device.gpus[i].temperature >= 60) {
+          class_badge = "badge-warning";
+        }
+      } else {
+        class_badge = "badge-primary";
+      }
+      temp = ` <span class="badge ${class_badge}">${device.gpus[i].temperature}°C</span>`;
+
       gpus += `<div>${num}${sanitizeHTML(
-        device.gpus[i].name + " " + vram
+        device.gpus[i].name + " <b>" + vram + "</b>" + temp
       )}</div>${displayGPUChart(device.gpus[i])}`;
     }
   }
