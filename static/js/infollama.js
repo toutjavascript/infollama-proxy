@@ -472,15 +472,15 @@ function displayDevice() {
       }
       let vram = formatBytes(device.gpus[i].memoryTotal, 0);
       let temp = "";
-      let class_badge = "";
+      let color_badge = "";
       if (device.gpus[i].temperature != null) {
-        class_badge = "badge-success";
+        color_badge = "#01DD00";
         if (device.gpus[i].temperature >= 70) {
-          class_badge = "badge-danger";
+          color_badge = "#FF020C";
         } else if (device.gpus[i].temperature >= 50) {
-          class_badge = "badge-warning";
+          color_badge = "orange";
         }
-        temp = ` <span class="badge ${class_badge}">${device.gpus[i].temperature}°C</span>`;
+        temp = ` <span class="badge" style="color:white !important; background-color:${color_badge} !important; font-weight:bold; font-size:11px !important; margin-bottom:4px;">${device.gpus[i].temperature}°C</span>`;
       }
 
       gpus += `<div><small>${num}</small>${
