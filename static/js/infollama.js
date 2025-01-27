@@ -474,18 +474,16 @@ function displayDevice() {
       let temp = "";
       let class_badge = "";
       if (device.gpus[i].temperature != null) {
-        class_badge = "badge-primary";
-        if (device.gpus[i].temperature >= 80) {
+        class_badge = "badge-success";
+        if (device.gpus[i].temperature >= 70) {
           class_badge = "badge-danger";
-        } else if (device.gpus[i].temperature >= 60) {
+        } else if (device.gpus[i].temperature >= 50) {
           class_badge = "badge-warning";
         }
-      } else {
-        class_badge = "badge-primary";
+        temp = ` <span class="badge ${class_badge}">${device.gpus[i].temperature}°C</span>`;
       }
-      temp = ` <span class="badge ${class_badge}">${device.gpus[i].temperature}°C</span>`;
 
-      gpus += `<div>${num}${
+      gpus += `<div><small>${num}</small>${
         sanitizeHTML(device.gpus[i].name) + " <b>" + vram + "</b>" + temp
       }</div>${displayGPUChart(device.gpus[i])}`;
     }
