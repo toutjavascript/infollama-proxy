@@ -127,6 +127,7 @@ Correcting bug and user issues is priority.
 - [ ] Add integrated support for tunneling to web
 - [ ] Add a fallback system to access an other LLM provider if the current one is down
 - [ ] Add an easy LLM speed benchmark
+- [ ] Add a log file size checker
 
 ## FAQ
 
@@ -148,7 +149,7 @@ Fully tested with solutions like
 - bore.pub (but no SSL support)
   `bore local 11430 --to bore.pub`
 
-** IF YOU OPEN INFOLLAMA OVER THE WEB, DO NOT FORGET TO CHANGE THE TOKENS IN `users.conf` FILE **
+**IF YOU OPEN INFOLLAMA OVER THE WEB, DO NOT FORGET TO CHANGE THE DEFAULT TOKENS IN `users.conf` FILE**
 
 ## Contributing
 
