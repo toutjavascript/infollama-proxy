@@ -18,7 +18,7 @@ Very first pre alpha release shared to debug and test on various devices. Please
 
 ## Requirements
 
-- Python 3.11 or higher
+- Python 3.10 or higher
 - Ollama server running on your local machine
 - Tested on Linux Ubuntu, Windows 10/11, macOS with Mx Silicon Chip
 
@@ -129,11 +129,25 @@ Correcting bug and user issues is priority.
 
 ## FAQ
 
+### No GPU information displayed
+
 If you see this error message `Error get_device_info(): no module name 'distutils'`, try to update your install with:
 
 ```
 pip install -U pip setuptools wheel
 ```
+
+### Tunneling is already working
+
+Fully tested with solutions like
+
+- nGrok
+  `ngrok http http://localhost:11430`
+
+- bore.pub (but no SSL support)
+  `bore local 11430 --to bore.pub`
+
+** IF YOU OPEN INFOLLAMA OVER THE WEB, DO NOT FORGET TO CHANGE THE TOKENS IN `users.conf` FILE **
 
 ## Contributing
 

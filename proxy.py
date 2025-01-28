@@ -321,6 +321,10 @@ class InfollamaProxy:
     
     def get(self, endpoint, headers, **kwargs):
         """Send a GET request to the Ollama API if the token access to endpoint is validated"""
+
+        if endpoint =="":
+            return "<script>window.location.href='/info';</script>"
+
         access=self.check_user_access(headers, endpoint)
         if access.is_authorised is False:
             self.log_event(access.user_name, "GET", endpoint, 403, log_level=9)
