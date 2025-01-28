@@ -61,6 +61,7 @@ class InfollamaUser:
         return {"user_type": self.user_type, "user_name": self.user_name, "token": "***"}
 
 
+
 class InfollamaAccess:
     def __init__(self, user_name: str, is_authorised: bool, desc: str):
         self.user_name=user_name
@@ -134,8 +135,8 @@ class InfollamaProxy:
         self.ollama_version=None
         self.ollama_running=False
         self.env_vars=dict()
-        self.user_file=user_file
-        self.users=[]
+        self.user_file: str=user_file
+        self.users= []
         self.get_ollama_env_var()
         self.device=self.update_device_info()
         if cors_policy == "*":
@@ -489,7 +490,10 @@ if __name__ == "__main__":
 
     if proxy.config.anonymous_access is True:
         pytherminal.console(f"   [error]Be carefull: this proxy server is openbar because you launch it with --anonym param. No token needed ![/error]", False)
-
+    else:
+        pytherminal.console(f"   Here the {len(proxy.users)} users who have an access token (listed in {user_file}) :", False)
+        for user in proxy.users:
+            pytherminal.console(f"      {user.user_name.ljust(15, " ")}   [b]{user.user_type}[/b] ", False)
 
     # Define the proxy server routes
     @proxy.server.route('/info')
