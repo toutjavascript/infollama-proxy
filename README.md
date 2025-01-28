@@ -67,7 +67,7 @@ usage: proxy.py [-h] [--base_url BASE_URL] [--host HOST] [--port PORT] [--cors C
 
 ## Update
 
-This repository is under heavy construction. To update the source code from github, open a terminal in the `infollama-proxy` folder and launch a pull request:
+This repository is under heavy construction. To update the source code from GitHub, open a terminal in the `infollama-proxy` folder and launch a pull request:
 
 ```sh
 git pull
@@ -79,13 +79,13 @@ You can now use the proxy to chat with your Ollama server. You must modify defau
 
 - base_url is now http://localhost:11430
 
-Do not forget to provide a valid token, starting with `pro_`, defined in `users.conf` file:
+Do not forget to provide a valid token, **starting with `pro_`**, defined in `users.conf` file:
 
 - api_key = "pro_xxxxxxxxxxxxxx"
 
 ## Define tokens
 
-Token definitions ar set in the `users.conf` file. This text file lists the tokens line by line with this format:
+Token definitions are set in the `users.conf` file. This text file lists the tokens line by line with this format:
 
 ```
 user_type:user_name:token
@@ -119,10 +119,11 @@ Log file uses Apache server log format. For example, one line with `PROMPT` leve
 ## Roadmap
 
 Correcting bug and user issues is priority.
-
+[ ] Add buttons to start and stop models
 [ ] Add a dockerfile for easy deployment and easy autostart
-[ ] Add an simple API to that returns the current usage from server (running models, hardware details, Free available VRAM, ...)
-[ ] Add integrated support for tunneling from web
+[ ] Add a simple API to that returns the current usage from server (running models, hardware details, Free available VRAM, ...)
+[ ] Add a web UI to view or export logs (by user or full log if admin is connected)
+[ ] Add integrated support for tunneling to web
 [ ] Add a fallback system to access an other LLM provider if the current one is down
 [ ] Add an easy LLM speed benchmark
 
@@ -133,3 +134,7 @@ If you see this error message `Error get_device_info(): no module name 'distutil
 ```
 pip install -U pip setuptools wheel
 ```
+
+## Contributing
+
+We welcome contributions from the community. Please feel free to open an issue or a pull request.
