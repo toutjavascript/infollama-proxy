@@ -26,7 +26,8 @@ def get_device_info():
 
         gpu_info = [{'id': gpu.id, 
                     'uuid': gpu.uuid, 
-                    'name': gpu.name, 
+                    'name': gpu.name.replace("GeForce", "").replace("Radeon",""), 
+                    'orignalName': gpu.name, 
                     'serial': gpu.serial, 
                     'temperature': gpu.temperature, 
                     'load': gpu.load, 

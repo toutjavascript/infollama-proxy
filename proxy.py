@@ -545,7 +545,7 @@ if __name__ == "__main__":
     @proxy.server.route('/favicon.ico', methods=['GET'])
     def serveFavicon():
         """ Serve the favicon.ico file (to avoid 404 errors)"""
-        return send_from_directory(os.path.join(appPath, 'static/picto'), 'llama.png', mimetype='image/vnd.microsoft.icon')
+        return send_from_directory(os.path.join(appPath, 'static/picto'), 'infollama.png', mimetype='image/vnd.microsoft.icon')
 
     @proxy.server.route('/robots.txt', methods=['GET'])
     def serveRobots():

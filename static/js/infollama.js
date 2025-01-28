@@ -357,7 +357,7 @@ function displayModels() {
     title = "No model available on Ollama";
     html = "<thead><tr><th>No available Model</th></tr></thead>";
   } else {
-    let size = 0;
+    let totalSize = 0;
     html +=
       "<thead><tr><th class='sortable' colspan='2'>Name</th><th class='text-end sortable'>File Size</th><th class='text-end sortable'>Family</th><th class='text-end sortable'>Params</th><th class='text-end sortable'>Quantization</th><th class='text-end sortable'>Installed</th></tr></thead>";
     html += "<tbody>";
@@ -372,11 +372,27 @@ function displayModels() {
         proxy.models[i].details.quantization_level
       )}</span>`;
       installed = getDeltaTime(proxy.models[i].modified_at);
-      size += proxy.models[i].size;
+      /* Sorting name with size. IE smollm2:135m is lower than smollm2:1.7b
+        So we must convert :1.5b or 150m to the real integer value padded with 0 
+      */
+      sortingName = proxy.models[i].name;
+      let reg = new RegExp("^([a-z0-9.-]+:)([0-9.]+)([mb]{1})", "g");
+      let parts = reg.exec(sortingName);
+      if (parts) {
+        sortingName =
+          parts[1] +
+          (parseFloat(parts[2]) * (parts[3] == "m" ? 1e6 : 1e9))
+            .toString()
+            .padStart(18, 0);
+      }
+
+      totalSize += proxy.models[i].size;
       html +=
         "<tr data-digest='" +
         sanitizeHTML(proxy.models[i].digest) +
-        "'><td>" +
+        "'><td data-sort='" +
+        sanitizeHTML(sortingName) +
+        "'>" +
         sanitizeHTML(proxy.models[i].name) +
         "</td><td>" +
         "<button class='form-control btn btn-sm btn-info p-0 btn-detail-model' data-name='" +
@@ -409,7 +425,7 @@ function displayModels() {
     title = `${proxy.models.length} model${
       proxy.models.length > 1 ? "s" : ""
     } available using ${formatBytes(
-      size
+      totalSize
     )} on disk <input type="text" id="searchInput" class="form-control" placeholder="Filter this list by name...">`;
   }
   titleElement.innerHTML = title;
@@ -493,7 +509,7 @@ function displayDevice() {
       ? `<b>Discrete GPU${device.gpus.length > 1 ? "s" : ""}:</b> ${gpus}<br>`
       : "";
 
-  html = `Proxy is running on <b>${sanitizeHTML(device.cpu_name)}</b><br>
+  html = `<b>${sanitizeHTML(device.cpu_name)}</b><br>
       <b>OS Version:</b> <i class="bi ${icon}" style="font-size: 1.2rem;" title=""></i> ${sanitizeHTML(
     device.os + " " + device.os_version
   )}<br>

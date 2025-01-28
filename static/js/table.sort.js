@@ -33,6 +33,10 @@ function convertValueEndsWithBOrM(value) {
 }
 
 function comparer(index) {
+  if (index >= 1) {
+    /* Because of colspan=2 on header */
+    index++;
+  }
   return function (a, b) {
     const valA = getCellValue(a, index).toLowerCase();
     const valB = getCellValue(b, index).toLowerCase();
