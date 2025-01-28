@@ -151,6 +151,9 @@ Fully tested with solutions like
 
 **IF YOU OPEN INFOLLAMA OVER THE WEB, DO NOT FORGET TO CHANGE THE DEFAULT TOKENS IN `users.conf` FILE**
 
+With a web access, the diagram shows you acces from outside your LAN
+<img width="953" alt="Diagram with external acces" src="https://github.com/user-attachments/assets/e1f86f8d-62c4-471d-922b-5becf9808c84" />
+
 ## Contributing
 
 We welcome contributions from the community. Please feel free to open an issue or a pull request.
