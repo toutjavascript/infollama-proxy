@@ -480,11 +480,11 @@ function displayDevice() {
         } else if (device.gpus[i].temperature >= 50) {
           color_badge = "orange";
         }
-        temp = ` <span class="badge" style="color:white !important; background-color:${color_badge} !important; font-weight:bold; font-size:11px !important; margin-bottom:4px;">${device.gpus[i].temperature}°C</span>`;
+        temp = ` <span class="badge" style="color:white !important; background-color:${color_badge} !important; font-weight:bold; font-size:12px !important; margin-bottom:2px;">${device.gpus[i].temperature}°C</span>`;
       }
 
-      gpus += `<div><small>${num}</small>${
-        sanitizeHTML(device.gpus[i].name) + " <b>" + vram + "</b>" + temp
+      gpus += `<div  class='d-flex justify-content-between'><span><small>${num}</small>${
+        sanitizeHTML(device.gpus[i].name) + " <b>" + vram + "</b></span>" + temp
       }</div>${displayGPUChart(device.gpus[i])}`;
     }
   }

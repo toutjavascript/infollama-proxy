@@ -485,7 +485,7 @@ if __name__ == "__main__":
         pytherminal.console(f"[error]Proxy server is running on port @ [url]{proxy.localhost}:{proxy.port}[/url] but Ollama not found[/error]", False)
 
     if proxy.config.host=="0.0.0.0":
-        pytherminal.console(f"   [warning]Be aware that this proxy server is accessible on your Local Area Network  @[url]{proxy.config.lan_ip}:{proxy.port}[/url][/warning]", False)
+        pytherminal.console(f"   [warning]Be aware that this Infollama Proxy server is accessible on your Local Area Network  @[url]{proxy.config.lan_ip}:{proxy.port}[/url][/warning]", False)
 
     if proxy.config.anonymous_access is True:
         pytherminal.console(f"   [error]Be carefull: this proxy server is openbar because you launch it with --anonym param. No token needed ![/error]", False)
