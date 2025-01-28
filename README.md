@@ -76,6 +76,7 @@ git pull
 ## Check the status of the hardware
 
 Infollama is not only a proxy server but also a powerfull web UI that displays hardware status, like GPU usage and temperatures, memory usage, and other information.
+<img width="440" alt="GPU RAM usage" src="https://github.com/user-attachments/assets/ff44cba3-fd4d-4e3d-8956-45da44554d82" />
 
 ## API Calls
 
