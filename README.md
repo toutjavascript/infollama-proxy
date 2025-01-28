@@ -119,13 +119,14 @@ Log file uses Apache server log format. For example, one line with `PROMPT` leve
 ## Roadmap
 
 Correcting bug and user issues is priority.
-[ ] Add buttons to start and stop models
-[ ] Add a dockerfile for easy deployment and easy autostart
-[ ] Add a simple API to that returns the current usage from server (running models, hardware details, Free available VRAM, ...)
-[ ] Add a web UI to view or export logs (by user or full log if admin is connected)
-[ ] Add integrated support for tunneling to web
-[ ] Add a fallback system to access an other LLM provider if the current one is down
-[ ] Add an easy LLM speed benchmark
+
+- [ ] Add buttons to start and stop models
+- [ ] Add a dockerfile for easy deployment and easy autostart
+- [ ] Add a simple API to that returns the current usage from server (running models, hardware details, Free available VRAM, ...)
+- [ ] Add a web UI to view or export logs (by user or full log if admin is connected)
+- [ ] Add integrated support for tunneling to web
+- [ ] Add a fallback system to access an other LLM provider if the current one is down
+- [ ] Add an easy LLM speed benchmark
 
 ## FAQ
 
