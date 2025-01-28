@@ -73,6 +73,10 @@ This repository is under heavy construction. To update the source code from GitH
 git pull
 ```
 
+## Check the status of the hardware
+
+Infollama is not only a proxy server but also a powerfull web UI that displays hardware status, like GPU usage and temperatures, memory usage, and other information.
+
 ## API Calls
 
 You can now use the proxy to chat with your Ollama server. You must modify default port configuration. Proxy port is `11430`:
