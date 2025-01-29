@@ -19,7 +19,7 @@ Very first pre alpha release shared to debug and test on various devices. Please
 ## Requirements
 
 - Python 3.10 or higher
-- Ollama server running on your local machine
+- Ollama server running on your local machine ([See Ollama repository](https://github.com/ollama/ollama))
 - Tested on Linux Ubuntu, Windows 10/11, macOS with Mx Silicon Chip
 
 ## Installation
@@ -58,11 +58,11 @@ You can modify launch configuration with theses parameters:
 ```
 usage: proxy.py [-h] [--base_url BASE_URL] [--host HOST] [--port PORT] [--cors CORS] [--anonym ANONYM] [--log LOG]
   --base_url BASE_URL  The base_url of localhost Ollama server (default: http://localhost:11434)
-  --host     HOST      The host name for the proxy server (default: 0.0.0.0)
-  --port     PORT      The port for the proxy server (default: 11430)
-  --cors     CORS      The cors policy for the proxy server (default: *)
-  --anonym   ANONYM    Authorize the proxy server to be accessed anonymously without token (default: False)
-  --log      LOG       Define the log level that is stored in proxy.log (default: ALL, Could be NEVER|ERROR|INFO|ALL)
+  --host HOST          The host name for the proxy server (default: 0.0.0.0)
+  --port PORT          The port for the proxy server (default: 11430)
+  --cors CORS          The cors policy for the proxy server (default: *)
+  --anonym ANONYM      Authorize the proxy server to be accessed anonymously without token (default: False)
+  --log LOG            Define the log level that is stored in proxy.log (default: PROMPT, Could be NEVER|ERROR|INFO|PROMPT|ALL)
 ```
 
 ## Update
@@ -76,6 +76,7 @@ git pull
 ## Check the status of the hardware
 
 Infollama is not only a proxy server but also a powerfull web UI that displays hardware status, like GPU usage and temperatures, memory usage, and other information.
+
 <img width="440" alt="GPU RAM usage" src="https://github.com/user-attachments/assets/ff44cba3-fd4d-4e3d-8956-45da44554d82" />
 
 ## API Calls
@@ -90,7 +91,7 @@ Do not forget to provide a valid token, **starting with `pro_`**, defined in `us
 
 ## Define tokens
 
-Token definitions are set in the `users.conf` file. This text file lists the tokens line by line with this format:
+Token definitions are set in the `users.conf` file. During first launch, the `users.conf` is created with `users.default.conf` file. This text file lists the tokens line by line with this format:
 
 ```
 user_type:user_name:token
@@ -126,6 +127,8 @@ Log file uses Apache server log format. For example, one line with `PROMPT` leve
 Correcting bug and user issues is priority.
 
 - [ ] Add buttons to start and stop models
+- [ ] Add a GPU database to compare LLM performances
+- [ ] Create a more efficient installation process
 - [ ] Add a dockerfile for easy deployment and easy autostart
 - [ ] Add a simple API to that returns the current usage from server (running models, hardware details, Free available VRAM, ...)
 - [ ] Add a web UI to view or export logs (by user or full log if admin is connected)

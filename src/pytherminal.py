@@ -10,6 +10,19 @@ import sys
 import platform
 import os
 from datetime import datetime
+import asyncio
+import time
+
+
+async def display_timer(title: str="Elapsed time"):
+    start_time = time.time()
+    try:
+        while True:
+            elapsed = time.time() - start_time
+            print(parseBB(f"\r{title}: [b]{elapsed:.0f} seconds[/b]. Please wait..."), end='', flush=True)
+            await asyncio.sleep(1)
+    except asyncio.CancelledError:
+        clear_line()  # clear the line after printing the elapsed time
 
 #Init functions for BB code printing in terminal on Windows
 if platform.system() == 'Windows':
@@ -189,28 +202,49 @@ def table(my_array, ignore_columns=None, align_right_columns=None):
 
     
 
+class BBCodeToANSIParser:
+    def __init__(self):
+        # Define BBCode-to-ANSI mapping
+        self.bbcode_patterns = [
+            (r"\[green\](.*?)\[/green\]", "\u001b[36m\\1\u001b[0m"),
+            (r"\[blue\](.*?)\[/blue\]", "\u001b[34m\\1\u001b[0m"),
+            (r"\[info\](.*?)\[/info\]", "\u001b[34m\\1\u001b[0m"),
+            (r"\[h1\](.*?)\[/h1\]", "\u001b[32;1m\\1\u001b[0m"),
+            (r"\[ok\](.*?)\[/ok\]", "\u001b[32;1m\\1\u001b[0m"),
+            (r"\[size\](.*?)\[/size\]", "\u001b[95m\\1\u001b[0m"),
+            (r"\[error\](.*?)\[/error\]", "\u001b[31;1m\\1\u001b[0m"),
+            (r"\[b\](.*?)\[/b\]", "\u001b[1m\\1\u001b[0m"),
+            (r"\[url\](.*?)\[/url\]", "\u001b[4m\\1\u001b[24m"),
+            (r"\[file\](.*?)\[/file\]", "\u001b[4m\\1\u001b[24m"),
+            (r"\[u\](.*?)\[/u\]", "\u001b[4m\\1\u001b[24m"),
+            (r"\[d\](.*?)\[/d\]", "\u001b[2m\\1\u001b[22m"),
+            (r"\[fade\](.*?)\[/fade\]", "\u001b[2m\\1\u001b[22m"),
+            (r"\[warning\](.*?)\[/warning\]", "\u001b[33m\\1\u001b[0m"),
+            (r"\[reset\]", "\u001b[0m\u001b[49m"),
+            (r"\[reverse\](.*?)\[/reverse\]", "\u001b[7m\\1\u001b[0m"),
+            (r"\[header\](.*?)\[/header\]", "\u001b[1m\\1\u001b[0m"),
+            (r"\[time\](.*?)\[/time\]", "\u001b[95m\\1\u001b[0m"),
+            (r"\[hour\](.*?)\[/hour\]", "\u001b[48;5;255m\\1\u001b[0m"),
+            (r"\[shell\](.*?)\[/shell\]", "\u001b[44;1;97m\\1\u001b[0m"),
+        ]
 
+    def parse(self, text):
+        """Parse BBCode into ANSI-colored plain text."""
+        for pattern, replacement in self.bbcode_patterns:
+            text = re.sub(pattern, replacement, text, flags=re.IGNORECASE)
+        return text
+
+    def showAll(self):
+        """Show all BBCode patterns."""
+        for pattern, replacement in self.bbcode_patterns:
+            tags=re.findall(r"\[([a-z0-9A-Z]*)\\\]", pattern)
+            tag=tags[0]
+
+            print(f"tag: [{tag}]", self.parse(f"Exemple: [{tag}]Texte avec ce BBCode[/{tag}]"))
 
 def parseBB(text):
-    """Parse BB code into ASCII colored plain text."""
-    text=re.sub(r"(\[h1\])(.+)(\[/h1\])", "\u001b[32;1m\\2\u001b[0m", text, flags=re.IGNORECASE)
-    text=re.sub(r"(\[ok\])(.+)(\[/ok\])", "\u001b[32;1m\\2\u001b[0m", text, flags=re.IGNORECASE)
-    text=re.sub(r"(\[green\])(.+)(\[/green\])", "\u001b[32m\\2\u001b[0m", text, flags=re.IGNORECASE)
-    text=re.sub(r"(\[size\])(.+)(\[/size\])", "\u001b[95m\\2\u001b[0m", text, flags=re.IGNORECASE)
-    text=re.sub(r"(\[error\])(.+)(\[/error\])", "\u001b[31;1m\\2\u001b[0m", text, flags=re.IGNORECASE)
-    text=re.sub(r"(\[b\])([^\[\]]+)(\[/b\])", "\u001b[1m\\2\u001b[0m", text, flags=re.IGNORECASE)
-    text=re.sub(r"(\[url\])(.+)(\[/url\])", "\u001b[4m\\2\u001b[24m", text, flags=re.IGNORECASE)
-    text=re.sub(r"(\[file\])(.+)(\[/file\])", "\u001b[4m\\2\u001b[24m", text, flags=re.IGNORECASE)
-    text=re.sub(r"(\[u\])(.+)(\[/u\])", "\u001b[4m\\2\u001b[24m", text, flags=re.IGNORECASE)
-    text=re.sub(r"(\[d\])(.+)(\[/d\])", "\u001b[2m\\2\u001b[22m", text, flags=re.IGNORECASE)
-    text=re.sub(r"(\[fade\])(.+)(\[/fade\])", "\u001b[2m\\2\u001b[22m", text, flags=re.IGNORECASE)
-    text=re.sub(r"(\[warning\])(.+)(\[/warning\])", "\u001b[33m\\2\u001b[0m", text, flags=re.IGNORECASE)
-    text=re.sub(r"(\[reset\])", "\u001b[0m\u001b[49m", text, flags=re.IGNORECASE)
-    text=re.sub(r"(\[reverse\])(.+)(\[/reverse\])", "\u001b[7m\\2\u001b[0m", text, flags=re.IGNORECASE)
-    text=re.sub(r"(\[header\])(.+)(\[/header\])", "\u001b[1m\\2\u001b[0m", text, flags=re.IGNORECASE)
-    text=re.sub(r"(\[hour\])(.+)(\[/hour\])", "\u001b[48;5;255m\\2\u001b[0m", text, flags=re.IGNORECASE)
-    text=re.sub(r"(\[shell\])(.+)(\[/shell\])", "\u001b[44;1;97m\\2\u001b[0m", text, flags=re.IGNORECASE)
-    return text
+    parser = BBCodeToANSIParser()
+    return parser.parse(text)
 
 def printBB(text): 
     print(parseBB(text))
@@ -229,13 +263,16 @@ def test():
     print(get_now_as_iso())
     print(get_date_diff("2024-12-10", get_now_as_iso()))
 
+    parser= BBCodeToANSIParser()
+    parser.showAll()
+
     print(get_terminal_size())
     printBB("[h1]Test of ANSI escape sequences[/h1]");
     printBB("[fade]Test of ANSI escape sequences[/fade]");
-    printBB("[reverse][b]Test of ANSI escape sequences[/b][/reverse]");
+    printBB("[reverse][b]Test of ANSI escape sequences[/b] and [b]other B tag[/b][/reverse]");
 
-    for i in range(30, 37 + 1):
-        print("\u001b[%dm%d\t\t\u001b[%dm%d" % (i, i, i + 60, i + 60))
+    for i in range(10, 110):
+        print("\u001b[%dm%d\t\t\u001b[%dm%d" % (i, i, i , i ))
 
 
 if __name__ == "__main__":

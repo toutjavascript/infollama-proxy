@@ -605,8 +605,9 @@ function send_token(token) {
     }
   }
   if (!token_checked) {
-    document.getElementById("div-check-token").innerHTML =
-      "<span class='error'>Token is not well formatted. It must start with 'pro_' and be at least 10 characters long.</span>";
+    showAlertError(
+      "Token is not well formatted. It must start with 'pro_' and be at least 10 characters long."
+    );
     return false;
   }
 
@@ -616,7 +617,9 @@ function send_token(token) {
         proxy.lastPingSuccess = new Date();
         if (data.user.user_type == "anonymous") {
           //proxy.validToken = false;
-          showAlert("alert-error");
+          showAlertError(
+            "Token is not valid. Please check your users.conf file and try again."
+          );
           return false;
         } else {
           if (data.user.user_name == "openbar") {
@@ -643,17 +646,17 @@ function send_token(token) {
         }
       } else if (data.ping == false) {
         if (data.user.user_type == "anonymous") {
-          showAlert("alert-error");
+          showAlertError("Ollama seems to be down. Please try again later.");
           return false;
         }
       } else {
-        showAlert("alert-error");
+        showAlertError("Infollama seems to be down.");
         return false;
       }
     })
     .catch((error) => {
       console.error("Error ping(token):", error);
-      showAlert("alert-error");
+      showAlertError("Infollama seems to be down.");
       return false;
     });
 }
@@ -711,8 +714,6 @@ function heartBeat() {
       })
       .catch((error) => {
         console.error("Error on heartBeat() :", error);
-        document.getElementById("div-check-token").innerHTML =
-          "<span class='error'>An error occurred. Proxy seems to be down.</span>";
       });
   }, 10000); // Check every 10 seconds
 }
@@ -722,6 +723,16 @@ function showAlert(name, autoClose = 5000) {
   if (autoClose > 0) {
     setTimeout(() => {
       document.getElementById(name)?.classList.add("d-none");
+    }, autoClose); // Hide the alert after autoClose/1000 seconds
+  }
+}
+
+function showAlertError(message, autoClose = 5000) {
+  document.getElementById("alert-error-message").innerText = message;
+  document.getElementById("alert-error").classList.remove("d-none");
+  if (autoClose > 0) {
+    setTimeout(() => {
+      document.getElementById("alert-error").classList.add("d-none");
     }, autoClose); // Hide the alert after autoClose/1000 seconds
   }
 }

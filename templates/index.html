@@ -119,10 +119,23 @@
       </div>
     </div>
 
+    <div class="container mt-4 d-none" id="alert-error">
+      <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <strong>Error!</strong>
+        <div id="alert-error-message"></div>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="alert"
+          aria-label="Close"
+        ></button>
+      </div>
+    </div>
+
     <div class="container mt-4 d-none" id="alert-success">
       <div class="alert alert-success alert-dismissible fade show" role="alert">
-        <strong>Success!</strong> Your token is valid and has been stored in a
-        cookie.
+        <strong>Success!</strong> Your token is valid and has been stored in
+        browser localstorage.
         <button
           type="button"
           class="btn-close"

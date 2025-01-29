@@ -5,6 +5,7 @@ Created: 2025-01
 """
 import requests
 import os
+import shutil
 import json
 import argparse
 import multiprocessing
@@ -118,6 +119,8 @@ class InfollamaConfig:
             'log_file': self.log_file,
             'log_size': self.log_size
         }
+    def get_log_size(self):
+        return os.path.getsize(self.log_file)
 
 class InfollamaProxy:
     def __init__(self, base_url, host, port, cors_policy, user_file, log_file="proxy.log", anonymous_access=False, log_level="ALL"):
@@ -226,6 +229,13 @@ class InfollamaProxy:
         Example: admin:john_doe:pro_1234567890
         users found are stored in self.users as a InfollamaUser object
         """
+
+        # Check if user_file exists to copy default values
+        if not os.path.exists(self.user_file):
+            if (self.user_file=="users.conf"):
+                pytherminal.console(f"[info]User file {self.user_file} not found. a default users.conf file is creacted.[/info]", False)
+                shutil.copy2("./users.default.conf", "users.conf") 
+
         try:
             # read the file line by line and create a list of InfollamaUser objects
             with open(self.user_file, 'r') as file:
@@ -236,7 +246,7 @@ class InfollamaProxy:
                         user_type, user_name, token = parts[0], parts[1], parts[2]
                         self.users.append(InfollamaUser(user_type=user_type, user_name=user_name, token=token))                        
         except FileNotFoundError:
-            print(f"User file {self.user_file} not found. No user auth definition.")
+            pytherminal.console(f"[error]User file {self.user_file} not found. No users defined![/error]", False)
 
 
         
@@ -441,7 +451,7 @@ if __name__ == "__main__":
     base_url="http://localhost:11434"       # base url of the Ollama server
     user_file="users.conf"                  # path to the user file containing credentials
     log_level="PROMPT"                      # log level of the proxy server
-    log_file="proxy.log"                    # path to the log file for the proxy server
+    log_file="infollama.log"                # path to the log file for the proxy server
     anonymous_access=False                  # Allows anonymous access to all API without providing token (default false)
     ##########################################################################################################################################
 
