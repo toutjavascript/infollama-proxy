@@ -1,5 +1,16 @@
 /* Infollama.js file to be included in index.html web UI */
 
+var dynamicTooltipList = [];
+
+const logLevels = [];
+logLevels["NEVER"] = "No logs at all";
+logLevels["ERROR"] = "Log only error and not authorised requests";
+logLevels["INFO"] =
+  "Log usefull access (not api/ps, api/tags, ...), excluding prompts";
+logLevels["PROMPT"] =
+  "Log useful access (not api/ps, api/tags, ...), including prompts";
+logLevels["ALL"] = "Log every event, including prompts";
+
 const user = {
   user_name: "",
   user_type: "",
@@ -18,6 +29,63 @@ const proxy = {
   validToken: false,
 };
 
+class UsageSynthese {
+  constructor(usage) {
+    this.eval_count = usage.eval_count;
+    this.load_duration = usage.load_duration / 1e9; /* Loading model */
+    this.eval_duration = usage.eval_duration / 1e9; /* Response time */
+    this.prompt_eval_count = usage.prompt_eval_count;
+    this.prompt_eval_duration =
+      usage.prompt_eval_duration / 1e9; /* Prompt reading time */
+    this.total_duration =
+      usage.total_duration /
+      1e9; /* Total time : load + input time + output time */
+    this.prompt_token_per_second =
+      this.prompt_eval_count / this.prompt_eval_duration;
+    this.response_token_per_second = this.eval_count / this.eval_duration;
+    this.num_ctx = Math.min(
+      usage.prompt_estimate_tokens,
+      usage.prompt_eval_count
+    );
+  }
+
+  getSummary() {
+    return `Response: ${
+      this.eval_count
+    } tokens | Load duration: ${this.load_duration.toFixed(
+      3
+    )}s | Response time: ${this.eval_duration.toFixed(
+      3
+    )}s | Prompt reading time: ${this.prompt_eval_duration.toFixed(
+      3
+    )}s | Total time: ${this.total_duration.toFixed(
+      3
+    )}s | Prompt token per second: ${this.prompt_token_per_second.toFixed(
+      2
+    )} | Response token per second: ${this.response_token_per_second.toFixed(
+      2
+    )} | num_ctx: ${this.num_ctx}`;
+  }
+}
+
+class Usage {
+  constructor(data, prompt_estimate_tokens = 0) {
+    this.prompt_estimate_tokens = parseInt(prompt_estimate_tokens);
+    this.created_at = data?.created_at;
+    this.done = data?.done;
+    this.done_reason = data?.done_reason;
+    this.response = data?.response;
+    this.eval_count = parseInt(data?.eval_count) || 0;
+    this.eval_duration = parseInt(data?.eval_duration) || 0;
+    this.load_duration = parseInt(data?.load_duration) || 0;
+    this.prompt_eval_count = parseInt(data?.prompt_eval_count) || 0;
+    this.prompt_eval_duration = parseInt(data?.prompt_eval_duration) || 0;
+    this.total_duration = parseInt(data?.total_duration) || 0;
+  }
+
+  // Add any other methods to manage the usage data as needed
+}
+
 function logout() {
   var logoutModal = new bootstrap.Modal(document.getElementById("logoutModal"));
   logoutModal.show();
@@ -25,7 +93,7 @@ function logout() {
   document.getElementById("confirmLogout").addEventListener(
     "click",
     function () {
-      var token = getCookie("proxy-token");
+      const token = getCookie("proxy-token");
       if (token) {
         setCookie("proxy-token", "", -1);
         document.cookie =
@@ -94,7 +162,7 @@ function getDevice() {
     */
   }
   return new Promise((resolve, reject) => {
-    var token = getCookie("proxy-token");
+    const token = getCookie("proxy-token");
     if (true) {
       fetch("/info/device", {
         method: "GET",
@@ -128,7 +196,7 @@ function getPS() {
     //});
   }
   return new Promise((resolve, reject) => {
-    var token = getCookie("proxy-token");
+    const token = getCookie("proxy-token");
     if (true) {
       fetch("/info/ps", {
         method: "GET",
@@ -155,7 +223,7 @@ function getPS() {
 }
 
 function getVersion() {
-  var token = getCookie("proxy-token");
+  const token = getCookie("proxy-token");
   return new Promise((resolve, reject) => {
     fetch("/api/version", {
       method: "GET",
@@ -178,7 +246,7 @@ function getVersion() {
 
 function getModels() {
   return new Promise((resolve, reject) => {
-    var token = getCookie("proxy-token");
+    const token = getCookie("proxy-token");
     fetch("/api/tags", {
       method: "GET",
       headers: {
@@ -206,7 +274,7 @@ function getModels() {
 /* Call all the /api/show to get details */
 function getAllShowModels() {
   /* Check if details is not already fetched */
-  var token = getCookie("proxy-token");
+  const token = getCookie("proxy-token");
 
   proxy.models.forEach((model, index) => {
     if (!proxy.modelDetails.includes(model.name)) {
@@ -271,6 +339,16 @@ function displaySoft() {
   <div class=""><b>Cors Policy, Allow-Origin:</b> ${sanitizeHTML(
     proxy.ping.config.cors_policy
   )}</div>
+  <div class=""><b>Log level:</b> ${sanitizeHTML(
+    proxy.ping.config.log_level
+  )} <i class='bi bi-info-circle-fill' data-bs-toggle='dynamic-tooltip' title='${
+    logLevels[proxy.ping.config.log_level]
+  }'></i></div>
+  <div class=""><b>Log file size:</b> ${formatBytes(
+    proxy.device.log_file_size,
+    1,
+    ""
+  )} </div>  
   <div class=""><b>LAN API access:</b> ${lanAccess}</div>
   <div class=""><b>WAN API access:</b> ${wanAccess}</div>
   `;
@@ -301,8 +379,6 @@ function showModelDetail(name, num_model) {
       `);
     let html = `
       <div>
-      
-      
       </div>
       ${
         languages
@@ -344,6 +420,79 @@ function showModelDetail(name, num_model) {
   }
 }
 
+function confirmLoadModel(button) {
+  const name = button.parentElement.parentElement?.dataset?.name;
+  const digest = button.parentElement.parentElement?.dataset?.digest;
+  if (!name) return false;
+  document.getElementById("loadModalModel").innerText = name;
+  document.getElementById("loadModalDigest").innerText = digest;
+
+  var loadModal = new bootstrap.Modal(document.getElementById("loadModal"));
+  loadModal.show();
+
+  document.getElementById("confirmLoad").addEventListener(
+    "click",
+    function () {
+      loadModel();
+    },
+    { once: true }
+  );
+}
+
+function loadModel() {
+  const digest = document.getElementById("loadModalDigest").innerText;
+  const name = document.getElementById("loadModalModel").innerText;
+  const num_ctx = parseInt(document.getElementById("load_num_ctx").value);
+  const num_gpu = parseInt(document.getElementById("load_num_gpu").value);
+  const keep_alive = document.getElementById("load_keep_alive").value;
+
+  return new Promise((resolve, reject) => {
+    const token = getCookie("proxy-token");
+    fetch("/api/chat", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + token,
+      },
+      body: JSON.stringify({
+        model: name,
+        messages: [],
+        stream: false,
+        keep_alive: keep_alive,
+        options: {
+          num_ctx: num_ctx,
+          num_gpu: num_gpu,
+        },
+      }),
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        if (data?.done_reason === "load") {
+          const modal = bootstrap.Modal.getInstance(
+            document.getElementById("loadModal")
+          );
+          modal.hide();
+          new jBox("Notice", {
+            content:
+              "Good news. Model <b>" +
+              name +
+              "</b> is loading!<br>It will appear in running model list in the next few seconds.",
+            color: "blue",
+          });
+          setTimeout(() => {
+            getPS().then(() => {
+              displayPS();
+            });
+          }, 1000);
+        }
+        resolve(data);
+      })
+      .catch((error) => {
+        reject(error.message);
+      });
+  });
+}
+
 /* Display the available models on the card table-available-models */
 function displayModels() {
   /* Check if proxy.models has changed and need a display update */
@@ -359,7 +508,7 @@ function displayModels() {
   } else {
     let totalSize = 0;
     html +=
-      "<thead><tr><th class='sortable' colspan='2'>Name</th><th class='text-end sortable'>File Size</th><th class='text-end sortable'>Family</th><th class='text-end sortable'>Params</th><th class='text-end sortable'>Quantization</th><th class='text-end sortable'>Installed</th></tr></thead>";
+      "<thead><tr><th class='sortable' colspan='3'>Name</th><th class='text-end sortable'>File Size</th><th class='text-end sortable'>Family</th><th class='text-end sortable'>Params</th><th class='text-end sortable'>Quantization</th><th class='text-end sortable'>Installed</th></tr></thead>";
     html += "<tbody>";
     for (let i = 0; i < proxy.models.length; i++) {
       pill2 = `<span class="badge bg-secondary rounded-pill">${sanitizeHTML(
@@ -390,12 +539,15 @@ function displayModels() {
       html +=
         "<tr data-digest='" +
         sanitizeHTML(proxy.models[i].digest) +
+        "' data-name='" +
+        sanitizeHTML(proxy.models[i].name) +
         "'><td data-sort='" +
         sanitizeHTML(sortingName) +
         "'>" +
         sanitizeHTML(proxy.models[i].name) +
         "</td><td>" +
-        "<button class='form-control btn btn-sm btn-info p-0 btn-detail-model' data-name='" +
+        '<i class="bi bi-play-circle-fill btnLoad" data-bs-toggle="dynamic-tooltip" title="Load this model" onclick="confirmLoadModel(this)"></i></td>' +
+        "<td><button class='form-control btn btn-sm btn-info p-0 btn-detail-model' data-name='" +
         sanitizeHTML(proxy.models[i].name) +
         "' onclick='showModelDetail(this.dataset.name, " +
         i +
@@ -535,6 +687,147 @@ function displayDevice() {
   document.title = `Infollama Proxy - ${device.hostname}`;
 }
 
+/* Function to confirm unloading a running model */
+function confirmUnloadModel(button) {
+  const name = button.parentElement.parentElement?.dataset?.name;
+  if (!name) return false;
+  document.getElementById("unloadModalModel").innerText = name;
+
+  var unloadModal = new bootstrap.Modal(document.getElementById("unloadModal"));
+  unloadModal.show();
+
+  document.getElementById("confirmUnload").addEventListener(
+    "click",
+    function () {
+      unloadModel();
+    },
+    { once: true }
+  );
+}
+
+/* Function to stop a running model */
+function unloadModel() {
+  return new Promise((resolve, reject) => {
+    const name = document.getElementById("unloadModalModel").innerText;
+    const token = getCookie("proxy-token");
+    fetch("/api/chat", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + token,
+      },
+      body: JSON.stringify({
+        model: name,
+        messages: [],
+        stream: false,
+        keep_alive: 0,
+      }),
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        const modal = bootstrap.Modal.getInstance(
+          document.getElementById("unloadModal")
+        );
+        modal.hide();
+        if (data?.done_reason === "unload") {
+          new jBox("Notice", {
+            content:
+              "Good news. Model <b>" +
+              name +
+              "</b> is unloading!<br>It will desappear from running model list in the next few seconds.",
+            color: "blue",
+          });
+          setTimeout(() => {
+            getPS().then(() => {
+              displayPS();
+            });
+          }, 1000);
+        }
+        resolve(data);
+      })
+      .catch((error) => {
+        reject(error.message);
+      });
+  });
+}
+
+/* Open a modal to confirm the run model to get num_ctx */
+function confirmRunModel(button) {
+  const name = button.parentElement.parentElement?.dataset?.name;
+  if (!name) return false;
+  document.getElementById("runModalModel").innerText = name;
+
+  var rundModal = new bootstrap.Modal(document.getElementById("runModal"));
+  rundModal.show();
+
+  document.getElementById("confirmRun").addEventListener(
+    "click",
+    function () {
+      runModel();
+    },
+    { once: true }
+  );
+}
+
+function runModel() {
+  const name = document.getElementById("runModalModel").innerText;
+  if (!name) return false;
+  const token = getCookie("proxy-token");
+  const prompt =
+    generateText(32000) +
+    "\n-----\n Ignore all previous text content and simply give me your name";
+  new jBox("Notice", {
+    content:
+      "API sent to model <b>" +
+      name +
+      "</b><br>Response will appear in a few seconds",
+    color: "blue",
+  });
+  const modal = bootstrap.Modal.getInstance(
+    document.getElementById("runModal")
+  );
+  modal.hide();
+
+  fetch("/api/generate", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: "Bearer " + token,
+    },
+    body: JSON.stringify({
+      model: name,
+      prompt: prompt,
+      stream: false,
+    }),
+  })
+    .then((response) => response.json())
+    .then((data) => {
+      if (data?.done) {
+        const usage = new Usage(data, estimateTokens(prompt));
+        const summary = new UsageSynthese(usage);
+
+        new jBox("Notice", {
+          content:
+            "Model response is:<br><b>" +
+            sanitizeHTML(data?.response) +
+            "</b><br>Summary: " +
+            summary.getSummary(),
+          color: "green",
+        });
+        console.log(usage);
+        console.log(summary.getSummary());
+      }
+    })
+    .catch((error) => {
+      console.log(error.message);
+      new jBox("Notice", {
+        content:
+          "Model response error:<br><b>" + sanitizeHTML(error.message) + "</b>",
+        color: "green",
+      });
+    });
+}
+
 /* Display running model on the card */
 function displayPS() {
   const tableElement = document.getElementById("table-running-models");
@@ -546,7 +839,7 @@ function displayPS() {
     html = "<thead><tr><th>No Model Running</th></tr></thead>";
   } else {
     html +=
-      "<thead><tr><th>Name</th><th colspan='2' class='text-center'>RAM Size</th><th class='text-end'>Expires</th></tr></thead>";
+      "<thead><tr><th>Name</th><th colspan='1' class='text-center'>RAM Size</th><th class='text-end'>Expires</th><th class='text-end'></th></tr></thead>";
     html += "<tbody>";
     let ram = 0;
     for (let i = 0; i < proxy.ps.length; i++) {
@@ -565,15 +858,20 @@ function displayPS() {
       html +=
         "<tr data-digest='" +
         sanitizeHTML(proxy.ps[i].digest) +
+        "' data-name='" +
+        sanitizeHTML(proxy.ps[i].name) +
         "'><td>" +
+        "<i class='bi bi-rocket-takeoff-fill btnRun' data-bs-toggle='dynamic-tooltip' onclick='confirmRunModel(this)' title='Click to run a request on this Model'></i> " +
         sanitizeHTML(proxy.ps[i].name) +
         "</td><td class='text-end'>" +
         formatBytes(proxy.ps[i].size) +
-        "</td><td class='text-end'>" +
+        "<br>" +
         pill +
         "</td><td class='text-end'>" +
         sanitizeHTML(proxy.ps[i].expires_in) +
-        "</td></tr>";
+        "</td><td class='text-end'>" +
+        "<i class='bi bi-x-square-fill btnStop' data-bs-toggle='dynamic-tooltip' onclick='confirmUnloadModel(this)' title='Click to unload this model from RAM'></i>";
+      ("</td></tr>");
     }
     html += "</tbody>";
     title = `${proxy.ps.length} model${
@@ -591,6 +889,20 @@ function displayPS() {
     } else {
       $(this).removeClass("highlight");
     }
+  });
+}
+
+/* Re activate the tooltips that are updated by the refreshed UI */
+function activateTooltips() {
+  /* Remove all tooltips before adding new ones */
+  dynamicTooltipList.map(function (tooltipTriggerEl) {
+    tooltipTriggerEl?.dispose();
+  });
+  var tooltipTriggerList = [].slice.call(
+    document.querySelectorAll('[data-bs-toggle="dynamic-tooltip"]')
+  );
+  dynamicTooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+    return new bootstrap.Tooltip(tooltipTriggerEl);
   });
 }
 
@@ -634,6 +946,7 @@ function send_token(token) {
                 displaySoft();
                 startUIWhenLogin();
                 showAlert("alert-openbar");
+                activateTooltips();
               })
               .catch((error) => {
                 console.log(error);
@@ -696,6 +1009,7 @@ function startUIWhenLogin() {
       updateHeader();
       updateFlowContainer();
       getAllShowModels();
+      activateTooltips();
     })
     .catch((error) => {
       console.error("Error on startUIWhenLogin() :", error);
@@ -711,6 +1025,7 @@ function heartBeat() {
         displayPS();
         displayModels();
         displayDevice();
+        activateTooltips();
       })
       .catch((error) => {
         console.error("Error on heartBeat() :", error);
@@ -766,7 +1081,7 @@ function startProxyUI() {
         );
         send_token("pro_token_openbar");
       }
-      let token = getCookie("proxy-token");
+      const token = getCookie("proxy-token");
       if (token) {
         send_token(token);
       }

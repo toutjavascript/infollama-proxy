@@ -127,3 +127,31 @@ pre.pre-template {
 span.wanAccess {
   color: #d00 !important;
 }
+
+.btnStop,
+.btnLoad,
+.btnRun {
+  font-size: 16px;
+  cursor: pointer;
+}
+.btnStop:hover {
+  color: #d00;
+}
+
+.btnRun:hover,
+.btnLoad:hover {
+  color: #0d0;
+}
+div#unloadModalModel,
+div#loadModalModel,
+div#runModalModel {
+  font-weight: bold;
+  text-align: center;
+  margin: 8px;
+}
+
+.jBox-container {
+  box-shadow: 3px 3px 6px rgba(0, 0, 0, 0.5) !important;
+  max-width: 360px;
+  overflow: auto;
+}

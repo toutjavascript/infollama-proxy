@@ -15,10 +15,10 @@ def get_file_size(file_path):
         return 0
 
 # Get hardware informations about the device (CPU, RAM, GPU)
-def get_device_info():
+def get_device_info(log_file: str):
     start_time0 = timeit.default_timer()
 
-    start_time = timeit.default_timer()
+    log_file_size=get_file_size(log_file)
     gpus=None
     try:
         import GPUtil
@@ -159,7 +159,8 @@ def get_device_info():
             "os_version": os_version,
             "os_details": platform.platform(),
             "hostname": hostname,
-            "description": ""
+            "description": "",
+            "log_file_size": log_file_size
         }
 
 
@@ -210,7 +211,8 @@ def get_device_info():
             "os_version": platform.release(),
             "os_details": platform.platform(),
             "hostname": "",
-            "description": "Hardware not detected"
+            "description": "Hardware not detected",
+            "log_file_size": log_file_size
         }
 
 

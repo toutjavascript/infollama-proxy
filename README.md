@@ -81,9 +81,9 @@ Infollama is not only a proxy server but also a powerfull web UI that displays h
 
 ## API Calls
 
-You can now use the proxy to chat with your Ollama server. You must modify default port configuration. Proxy port is `11430`:
+You can now use the proxy to chat with your Ollama server. Infollama works as an OpenAI Compatible LLM Server, You must give ths Base URL with port `11430`:
 
-- base_url is now http://localhost:11430
+- base_url is now http://localhost:11430/v1
 
 Do not forget to provide a valid token, **starting with `pro_`**, defined in `users.conf` file:
 

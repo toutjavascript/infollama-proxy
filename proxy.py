@@ -101,7 +101,6 @@ class InfollamaConfig:
         self.user_file=user_file
         self.log_level=log_level
         self.log_file=log_file
-        self.log_size=device.get_file_size(log_file)
         self.anonymous_access=anonymous_access  
         self.lan_ip=lan.get_lan_ip()
     def __str__(self):
@@ -117,7 +116,6 @@ class InfollamaConfig:
             'lan_ip': self.lan_ip,
             "anonymous_access": self.anonymous_access  ,
             'log_file': self.log_file,
-            'log_size': self.log_size
         }
     def get_log_size(self):
         return os.path.getsize(self.log_file)
@@ -142,6 +140,7 @@ class InfollamaProxy:
         self.users= []
         self.get_ollama_env_var()
         self.device=self.update_device_info()
+        
         if cors_policy == "*":
             CORS(self.server)  # Enable CORS for all origins
         else:
@@ -166,8 +165,8 @@ class InfollamaProxy:
     
     def update_device_info(self) -> dict:
         """Get device information"""
-        # Implement logic to retrieve device information
-        return device.get_device_info()
+        device_info = device.get_device_info(self.config.log_file)
+        return device_info
     
     def log_event(self, user="internal", method="GET", url="", http_status=200, log_level=0, event="") -> None:
         """ Log an event to the console and the log_file file
@@ -539,7 +538,7 @@ if __name__ == "__main__":
         """ Get device information only to authorized users """
         if proxy.check_user_access(request.headers, "info/device").is_authorised:
             try:
-                proxy.device=device.get_device_info()
+                proxy.device=device.get_device_info(proxy.config.log_file)
             except Exception as e:
                 traceback.print_exc()
                 print("[b]Error get_device_info():[/b]", e)

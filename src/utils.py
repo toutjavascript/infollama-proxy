@@ -47,7 +47,10 @@ def get_diff_date(dt1, dt2="now"):
     delta = dt1 - dt2
     if round(delta.total_seconds() / 60)>0:
         return str(round(delta.total_seconds() / 60))+" min"  # return difference in minutes
-    return str(round(delta.total_seconds() / 60 / 60))+" sec"  # return difference in seconds
+    elif round(delta.total_seconds() / 60 / 60)>0:
+        return str(round(delta.total_seconds() / 60 / 60))+" sec"  # return difference in seconds
+    else:
+        return "<10 sec"
 
 
 
