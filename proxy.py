@@ -512,7 +512,7 @@ if __name__ == "__main__":
     @proxy.server.route('/info')
     def info():
         """ Serve the home page with localhost hardware informations & ollama server details (models available, models running, etc)"""
-        proxy.log_event("anonymoys", "GET", "/info", 200, log_level=1)
+        proxy.log_event("anonymous", "GET", "/info", 200, log_level=1)
         return render_template('index.html', release=OLLAMA_PROXY_RELEASE)
 
     @proxy.server.route("/info/ping",  methods=['GET', 'POST'])

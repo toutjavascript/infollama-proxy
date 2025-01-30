@@ -126,10 +126,9 @@ Log file uses Apache server log format. For example, one line with `PROMPT` leve
 
 Correcting bug and user issues is priority.
 
-- [ ] Add buttons to start and stop models
+- [x] Add buttons to start and stop models
 - [ ] Add a GPU database to compare LLM performances
-- [ ] Create a more efficient installation process
-- [ ] Add a dockerfile for easy deployment and easy autostart
+- [ ] Create a more efficient installation process (docker and .bat)
 - [ ] Add a simple API to that returns the current usage from server (running models, hardware details, Free available VRAM, ...)
 - [ ] Add a web UI to view or export logs (by user or full log if admin is connected)
 - [ ] Add integrated support for tunneling to web

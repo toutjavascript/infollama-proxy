@@ -7,13 +7,11 @@
   border: 1px solid #ccc;
   box-shadow: 3px 3px 12px rgba(0, 0, 0, 0.6);
   transform: scale(1);
-  background-color: #fff;
 }
 
 .localhost {
   position: relative;
   height: 90px;
-  background-color: #a2f7fa;
   top: 12px;
   border-radius: 15px;
   border: 2px dotted #23a7ff;
@@ -23,9 +21,22 @@
   position: relative;
   height: 140px;
   margin: 5px auto;
-  background-color: #eff7fd;
   border-radius: 15px;
   border: 3px dotted #000;
+}
+body.dark .lan {
+  background-color: #7e8c92 !important;
+}
+body.light .lan {
+  background-color: #eff7fd !important;
+}
+body.light .localhost,
+body.light #titleLOCALHOST {
+  background-color: #a2f7fa;
+}
+body.dark .localhost,
+body.dark #titleLOCALHOST {
+  background-color: #73babd;
 }
 
 .box {
@@ -55,7 +66,6 @@
   left: 420px;
   width: 120px;
   text-align: center;
-  background-color: #a2f7fa;
   color: #23a7ff;
   border-radius: 3px;
   border: 2px dotted #23a7ff;

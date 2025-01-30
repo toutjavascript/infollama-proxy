@@ -47,12 +47,42 @@
           return new bootstrap.Tooltip(tooltipTriggerEl);
         });
       });
+
+      document.addEventListener("DOMContentLoaded", function () {
+        const toggleButton = document.getElementById("theme-toggle");
+        const themeIcon = document.getElementById("theme-icon");
+        const body = document.body;
+        const navbar = document.getElementById("navbar");
+
+        toggleButton.addEventListener("click", function () {
+          const currentTheme = body.getAttribute("data-bs-theme");
+          const newTheme = currentTheme === "light" ? "dark" : "light";
+          body.setAttribute("data-bs-theme", newTheme);
+          body.setAttribute("class", newTheme);
+          localStorage.setItem("theme", newTheme);
+          themeIcon.className =
+            newTheme === "light" ? "bi bi-sun" : "bi bi-moon";
+          navbar.className =
+            newTheme === "light"
+              ? "navbar navbar-expand-lg fixed-top p-0 shadow bg-light"
+              : "navbar navbar-expand-lg fixed-top p-0 shadow bg-dark";
+        });
+
+        // Load the saved theme
+        const savedTheme = localStorage.getItem("theme") || "light";
+        body.setAttribute("data-bs-theme", savedTheme);
+        body.setAttribute("class", savedTheme);
+        themeIcon.className =
+          savedTheme === "light" ? "bi bi-sun" : "bi bi-moon";
+        navbar.className =
+          savedTheme === "light"
+            ? "navbar navbar-expand-lg fixed-top p-0 shadow bg-light"
+            : "navbar navbar-expand-lg fixed-top p-0 shadow bg-dark";
+      });
     </script>
   </head>
-  <body>
-    <nav
-      class="navbar navbar-expand-lg navbar-light bg-light fixed-top p-0 shadow"
-    >
+  <body data-bs-theme="light" class="light">
+    <nav class="navbar navbar-expand-lg fixed-top p-0 shadow" id="navbar">
       <div class="container-fluid">
         <a class="navbar-brand" href="#">
           <img
@@ -77,6 +107,16 @@
         </div>
         <div class="d-flex align-items-center">
           <span class="navbar-text mx-3" id="header-user"></span>
+
+          <button id="theme-toggle" class="btn btn-link p-0 mx-3 fs-4">
+            <i
+              id="theme-icon"
+              class="bi bi-sun"
+              data-bs-toggle="tooltip"
+              data-bs-placement="bottom"
+              title="Toggle Theme"
+            ></i>
+          </button>
           <button
             class="btn btn-outline-secondary d-none"
             id="btn-logout"
@@ -276,6 +316,17 @@
                   This application is an Ollama proxy server providing acces to
                   the Ollama server via authentification token. You can
                   configure CORS policy, LAN and WAN access.
+                </p>
+                <p>
+                  To use in your LLM app, open Settings and choose
+                  <i>OpenAI Compatible</i> provider.<br />
+
+                  Fill in <i>Base URL</i> and your secret token in
+                  <i>API Key</i>:<br />
+                  <img
+                    src="{{ url_for('static', filename= 'images/config-openai-compatible.png') }}"
+                    class="card-img border"
+                  />
                 </p>
                 <p>
                   This application can also displays realtime informations in a
