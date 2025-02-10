@@ -36,6 +36,10 @@ tr.highlight td {
   color: white !important;
 }
 
+body.dark img.img-reverse {
+  filter: invert(100%);
+}
+
 /* Responsive mode */
 @media (max-width: 560px) {
   #header-title {

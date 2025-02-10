@@ -1,11 +1,8 @@
 # Infollama Proxy
 
-Infollama is a Python script that manages a token protection proxy for Ollama.
-Infollama also retrieves and displays usefull details about Ollama server (models, running models, size, ram usage, ...) and hardware informations, especially RAM and VRAM.
+Infollama is a Python server that manages a **token-protected proxy for Ollama**.
 
-## WARNING
-
-Very first pre alpha release shared to debug and test on various devices. Please report any issues or bugs you encounter during testing. You can share your ideas and needs.
+Infollama also retrieves and displays in a real time UI **useful details about the Ollama server**, including available models, running models, file size, RAM usage, and more. It also **provides hardware information**, particularly GPU and RAM usage.
 
 ## Features
 
@@ -51,7 +48,7 @@ Run the script with the following command:
 python proxy.py
 ```
 
-Open the browser and navigate to `http://localhost:11430/info` to access the Infollama Proxy web UI and start API calls.
+Open the browser and navigate to `http://localhost:11430/info` to access the Infollama Proxy web UI.
 
 You can modify launch configuration with theses parameters:
 
@@ -127,6 +124,8 @@ Log file uses Apache server log format. For example, one line with `PROMPT` leve
 Correcting bug and user issues is priority.
 
 - [x] Add buttons to start and stop models
+- [x] Add dark/light display mode
+- [ ] Secure token storage with HTTPOnly cookie or browser keychain if available
 - [ ] Add a GPU database to compare LLM performances
 - [ ] Create a more efficient installation process (docker and .bat)
 - [ ] Add a simple API to that returns the current usage from server (running models, hardware details, Free available VRAM, ...)
@@ -137,6 +136,13 @@ Correcting bug and user issues is priority.
 - [ ] Add a log file size checker
 
 ## FAQ
+
+### Why Infollama proxy ?
+
+Beacause I needed two functionnalities :
+
+- Access to Ollama server on LAN and over the web. As Ollama is not protected by token access, I need to manage it in a simple way.
+- Realtime view of Ollama server status
 
 ### No GPU information displayed
 

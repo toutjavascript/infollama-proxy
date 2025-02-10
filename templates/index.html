@@ -88,7 +88,7 @@
           <img
             src="/static/picto/infollama.png"
             alt="Logo"
-            class="d-inline-block align-text-top logo"
+            class="d-inline-block align-text-top logo img-reverse"
           />
         </a>
         <span class="me-auto" id="header-title">
@@ -325,7 +325,7 @@
                   <i>API Key</i>:<br />
                   <img
                     src="{{ url_for('static', filename= 'images/config-openai-compatible.png') }}"
-                    class="card-img border"
+                    class="card-img border img-reverse"
                   />
                 </p>
                 <p>
@@ -513,18 +513,24 @@
               before proceeding.
             </div>
             <div id="loadModalModel"></div>
-            <div id="loadModalDigest"></div>
+            <div id="loadModalDigest" class="d-none"></div>
             <form>
               <div class="mb-3">
                 <label for="load_num_ctx" class="form-label"
                   >Context length (num_ctx)</label
                 >
                 <input
-                  type="text"
+                  type="number"
+                  min="128"
+                  max=""
                   class="form-control"
                   id="load_num_ctx"
                   placeholder="2048"
                 />
+                <small id="emailHelp" class="form-text text-muted"
+                  >This model supports up to
+                  <span id="max_num_ctx"></span> tokens.</small
+                >
               </div>
               <div class="mb-3">
                 <label for="load_num_gpu" class="form-label"

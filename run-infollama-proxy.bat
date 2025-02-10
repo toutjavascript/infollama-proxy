@@ -1,9 +1,8 @@
 :: Navigate to the directory containing the virtual environment
-cd /d venv\Scripts
+python -m venv venv
 :: Activate the virtual environment
-call activate
+venv\Scripts\activate
 
-:: Navigate to the app directory 
-cd ../..
+
 :: Run the proxy script
 python proxy.py

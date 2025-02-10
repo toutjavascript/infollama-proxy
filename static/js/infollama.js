@@ -363,7 +363,7 @@ function showModelDetail(name, num_model) {
     const arch = show.model_info["general.architecture"];
     const languages = show.model_info["general.languages"] || null;
     const licence = show.model_info["general.license"] || null;
-    const context_length = show.model_info[arch + ".context_length"] || null;
+    const context_length = show.model_info[arch + ".context_length"] || 0;
     $("#show-model-name").html(`Detail configuration for <strong>${sanitizeHTML(
       name
     )}</strong><br>
@@ -389,8 +389,8 @@ function showModelDetail(name, num_model) {
       }
       ${
         context_length
-          ? "<div><strong>Default context length: </strong>: " +
-            Math.round(context_length / 1000) +
+          ? "<div><strong>Max context length: </strong>: " +
+            Math.round(context_length / 1024) +
             "k" +
             "</div>"
           : ""
@@ -407,8 +407,8 @@ function showModelDetail(name, num_model) {
       ${
         typeof show.system === "undefined"
           ? "<small class='text-muted ml-4'>Not defined</small>"
-          : "<br>" + sanitizeHTML(show.system)
-      }</div>
+          : "<br><pre class='pre-template'>" + sanitizeHTML(show.system)
+      }</pre></div>
       <div><strong>Template:</strong><pre class='pre-template'>${sanitizeHTML(
         show.template
       )}</pre></div>
@@ -424,8 +424,14 @@ function confirmLoadModel(button) {
   const name = button.parentElement.parentElement?.dataset?.name;
   const digest = button.parentElement.parentElement?.dataset?.digest;
   if (!name) return false;
+  const show = proxy.modelDetails[name];
+  const arch = show.model_info["general.architecture"];
+  const context_length = show.model_info[arch + ".context_length"] || 0;
+
   document.getElementById("loadModalModel").innerText = name;
   document.getElementById("loadModalDigest").innerText = digest;
+  document.getElementById("max_num_ctx").innerText = context_length;
+  document.getElementById("load_num_ctx").max = context_length;
 
   var loadModal = new bootstrap.Modal(document.getElementById("loadModal"));
   loadModal.show();
@@ -751,7 +757,7 @@ function unloadModel() {
   });
 }
 
-/* Open a modal to confirm the run model to get num_ctx */
+/* Open a modal to confirm the run model */
 function confirmRunModel(button) {
   const name = button.parentElement.parentElement?.dataset?.name;
   if (!name) return false;
